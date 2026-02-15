@@ -10,25 +10,59 @@ interface TaggerState {
 
 export const AppContext = createContext<App | undefined>(undefined);
 
+type TagCoords = {
+    x: number;
+    y: number;
+};
+
+type PhotoCoords = {
+    x: number;
+    y: number;
+};
+
 export const ReactView = ({ file }: TaggerState) => {
     const app = useContext(AppContext);
-    const [coords, setCoords] = useState<{ x: number; y: number } | null>(null);
+    const [coords, setCoords] = useState<PhotoCoords | null>(null);
+    const [tagCoords, setTagCoords] = useState<TagCoords | null>(null);
 
     const imageSrc = file instanceof TFile && app ? app.vault.getResourcePath(file) : null;
     const imageName = file?.name || 'Unknown';
 
+    // Search state
+    const [searchQuery, setSearchQuery] = useState('');
+    const [searchResults, setSearchResults] = useState<TFile[]>([]);
+    const [selectedFile, setSelectedFile] = useState<TFile | null>(null);
+
+    const handleSearch = (query: string) => {
+        setSearchQuery(query);
+        if (!query.trim()) {
+            setSearchResults([]);
+
+            return;
+        }
+
+        if (!app) {
+            return;
+        }
+
+        const files = app.vault.getMarkdownFiles();
+        const results = files
+            .filter((file) => file.path.toLowerCase().includes(query.toLowerCase()))
+            .slice(0, 10);
+        setSearchResults(results);
+    };
+
+    const handleSelectFile = (file: TFile) => {
+        setSelectedFile(file);
+        setSearchQuery('');
+        setSearchResults([]);
+    };
+
     const handleImageClick = (e: MouseEvent<HTMLImageElement>) => {
         const rect = e.currentTarget.getBoundingClientRect();
 
-        console.log({ width: e.currentTarget.width, height: e.currentTarget.height });
-        console.log({
-            naturalWidth: e.currentTarget.naturalWidth,
-            naturalHeight: e.currentTarget.naturalHeight,
-        });
-
         const width = e.currentTarget.width;
         const height = e.currentTarget.height;
-
         const naturalWidth = e.currentTarget.naturalWidth;
         const naturalHeight = e.currentTarget.naturalHeight;
 
@@ -72,12 +106,47 @@ export const ReactView = ({ file }: TaggerState) => {
                     gap: '0.5em',
                 }}
             >
-                <span>Coordinates:</span>
                 <span style={{ fontFamily: 'monospace' }}>
                     {coords
-                        ? `X: ${Math.round(coords.x)}, Y: ${Math.round(coords.y)}`
+                        ? `Coordinates: (${Math.round(coords.x)}, ${Math.round(coords.y)})`
                         : 'Click image to tag'}
                 </span>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <input
+                        type="text"
+                        placeholder="Search page..."
+                        value={searchQuery}
+                        onChange={(e) => handleSearch(e.target.value)}
+                    />
+                    {selectedFile && (
+                        <div style={{ fontSize: '0.9em' }}>Selected: {selectedFile.basename}</div>
+                    )}
+                    <div
+                        style={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '4px',
+                            maxHeight: '200px',
+                            overflowY: 'auto',
+                            padding: '4px',
+                        }}
+                    >
+                        {searchResults.map((file) => (
+                            <div
+                                key={file.path}
+                                onClick={() => handleSelectFile(file)}
+                                style={{
+                                    cursor: 'pointer',
+                                    padding: '4px 8px',
+                                    fontSize: '0.9em',
+                                }}
+                                className="suggestion-item"
+                            >
+                                {file.basename}
+                            </div>
+                        ))}
+                    </div>
+                </div>
             </div>
         </div>
     );
