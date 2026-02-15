@@ -216,7 +216,9 @@ export const ReactView = ({ file }: TaggerState) => {
                             }}
                         >
                             <span
-                                onClick={() => openFile(selectedFile)}
+                                onClick={() => {
+                                    openFile(selectedFile).catch((err) => console.error(err));
+                                }}
                                 style={{ cursor: 'pointer', flex: 1, marginRight: '8px' }}
                             >
                                 {selectedFile.basename}
@@ -281,7 +283,9 @@ export const ReactView = ({ file }: TaggerState) => {
                                 key={`${index}-tag-description`}
                                 onMouseEnter={() => setHoveredTagIndex(index)}
                                 onMouseLeave={() => setHoveredTagIndex(null)}
-                                onClick={() => handleTagClick(tag.filePath)}
+                                onClick={() => {
+                                    handleTagClick(tag.filePath).catch((err) => console.error(err));
+                                }}
                                 style={{
                                     display: 'inline-flex',
                                     justifyContent: 'space-between',
@@ -331,6 +335,10 @@ export class TaggerView extends ItemView {
         this.root?.unmount();
     }
 
+    // Fuck TS.
+    /* eslint-disable  @typescript-eslint/no-explicit-any */
+    /* eslint-disable  @typescript-eslint/no-unsafe-member-access */
+    /* eslint-disable  @typescript-eslint/no-unsafe-assignment */
     async setState(state: any, result: ViewStateResult): Promise<void> {
         if (state) {
             this.taggerState = {

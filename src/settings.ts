@@ -9,7 +9,7 @@ export const DEFAULT_SETTINGS: PhotoTaggingSettings = {
     mySetting: 'default',
 };
 
-export class SampleSettingTab extends PluginSettingTab {
+export class PhotoRaggingSettingTab extends PluginSettingTab {
     plugin: PhotoTagging;
 
     constructor(app: App, plugin: PhotoTagging) {
@@ -24,7 +24,7 @@ export class SampleSettingTab extends PluginSettingTab {
 
         new Setting(containerEl)
             .setName('Database file')
-            .setDesc('file path')
+            .setDesc('File path.')
             .addText((text) =>
                 text
                     .setPlaceholder('Enter your secret')

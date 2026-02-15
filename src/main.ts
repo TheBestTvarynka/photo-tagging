@@ -1,7 +1,7 @@
 import { Notice, Plugin, Menu, MenuItem, TAbstractFile } from 'obsidian';
 
 import { TaggerView, VIEW_TYPE } from './tagger';
-import { DEFAULT_SETTINGS, PhotoTaggingSettings, SampleSettingTab } from './settings';
+import { DEFAULT_SETTINGS, PhotoTaggingSettings, PhotoRaggingSettingTab } from './settings';
 
 export default class PhotoTagging extends Plugin {
     settings: PhotoTaggingSettings;
@@ -15,7 +15,7 @@ export default class PhotoTagging extends Plugin {
 
         this.registerView(VIEW_TYPE, (leaf) => new TaggerView(leaf));
 
-        this.addSettingTab(new SampleSettingTab(this.app, this));
+        this.addSettingTab(new PhotoRaggingSettingTab(this.app, this));
 
         this.registerEvent(
             this.app.workspace.on('file-menu', (menu, file) => {
@@ -38,8 +38,6 @@ export default class PhotoTagging extends Plugin {
     onunload() {}
 
     handleFileMenu(menu: Menu, file: TAbstractFile) {
-        console.log('Handle file menu');
-
         if (
             file.name.endsWith('.jpg') ||
             file.name.endsWith('.png') ||
@@ -49,7 +47,6 @@ export default class PhotoTagging extends Plugin {
                 item.setTitle('Tag people')
                     .setIcon('pin')
                     .onClick(async () => {
-                        console.log('Tag people clicked');
                         this.activateView(file).catch((err) => console.error(err));
                     });
             });
