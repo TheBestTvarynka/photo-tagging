@@ -6,6 +6,8 @@ export const VIEW_TYPE = 'photo-tagger-view';
 
 interface TaggerState {
     file: TAbstractFile | null;
+    tags: Tag[];
+    setTags: (tags: Tag[]) => void;
 }
 
 export const AppContext = createContext<App | undefined>(undefined);
@@ -20,19 +22,19 @@ type PhotoCoords = {
     y: number;
 };
 
-type Tag = {
+export type Tag = {
+    id: string;
     coords: PhotoCoords;
     tagCoords: TagCoords;
     person: string;
     filePath: string;
 };
 
-export const ReactView = ({ file }: TaggerState) => {
+export const ReactView = ({ file, tags, setTags }: TaggerState) => {
     const app = useContext(AppContext);
 
     const [coords, setCoords] = useState<PhotoCoords | null>(null);
     const [tagCoords, setTagCoords] = useState<TagCoords | null>(null);
-    const [tags, setTags] = useState<Tag[]>([]);
     const [hoveredTagIndex, setHoveredTagIndex] = useState<number | null>(null);
 
     const imageSrc = file instanceof TFile && app ? app.vault.getResourcePath(file) : null;
@@ -74,6 +76,7 @@ export const ReactView = ({ file }: TaggerState) => {
         }
 
         const newTag: Tag = {
+            id: crypto.randomUUID(),
             person: selectedFile.basename,
             coords: coords,
             tagCoords: tagCoords,
@@ -280,7 +283,7 @@ export const ReactView = ({ file }: TaggerState) => {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
                         {tags.map((tag, index) => (
                             <div
-                                key={`${index}-tag-description`}
+                                key={tag.id}
                                 onMouseEnter={() => setHoveredTagIndex(index)}
                                 onMouseLeave={() => setHoveredTagIndex(null)}
                                 onClick={() => {
@@ -313,7 +316,7 @@ export const ReactView = ({ file }: TaggerState) => {
 
 export class TaggerView extends ItemView {
     root: Root | null = null;
-    taggerState: TaggerState = { file: null };
+    taggerState: TaggerState = { file: null, tags: [], setTags: () => {} };
 
     constructor(leaf: WorkspaceLeaf) {
         super(leaf);
@@ -343,6 +346,15 @@ export class TaggerView extends ItemView {
         if (state) {
             this.taggerState = {
                 file: state.file || null,
+                tags: state.tags || [],
+                setTags: (tags: Tag[]) => {
+                    this.taggerState.tags = tags;
+                    this.renderView();
+
+                    if (state.setTags) {
+                        state.setTags(tags);
+                    }
+                },
             };
             this.renderView();
         }
@@ -357,7 +369,11 @@ export class TaggerView extends ItemView {
         this.root.render(
             <AppContext.Provider value={this.app}>
                 <StrictMode>
-                    <ReactView file={this.taggerState.file} />
+                    <ReactView
+                        file={this.taggerState.file}
+                        tags={this.taggerState.tags}
+                        setTags={this.taggerState.setTags}
+                    />
                 </StrictMode>
             </AppContext.Provider>,
         );
