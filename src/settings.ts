@@ -1,18 +1,18 @@
 import { App, PluginSettingTab, Setting } from 'obsidian';
-import MyPlugin from './main';
+import PhotoTagging from './main';
 
-export interface MyPluginSettings {
+export interface PhotoTaggingSettings {
     mySetting: string;
 }
 
-export const DEFAULT_SETTINGS: MyPluginSettings = {
+export const DEFAULT_SETTINGS: PhotoTaggingSettings = {
     mySetting: 'default',
 };
 
 export class SampleSettingTab extends PluginSettingTab {
-    plugin: MyPlugin;
+    plugin: PhotoTagging;
 
-    constructor(app: App, plugin: MyPlugin) {
+    constructor(app: App, plugin: PhotoTagging) {
         super(app, plugin);
         this.plugin = plugin;
     }
@@ -23,8 +23,8 @@ export class SampleSettingTab extends PluginSettingTab {
         containerEl.empty();
 
         new Setting(containerEl)
-            .setName('Settings #1')
-            .setDesc("It's a secret")
+            .setName('Database file')
+            .setDesc('file path')
             .addText((text) =>
                 text
                     .setPlaceholder('Enter your secret')
