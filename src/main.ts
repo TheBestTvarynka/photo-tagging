@@ -1,15 +1,6 @@
-import {
-    App,
-    Editor,
-    MarkdownView,
-    Modal,
-    Notice,
-    Plugin,
-    Menu,
-    MenuItem,
-    TFile,
-    TAbstractFile,
-} from 'obsidian';
+import { Notice, Plugin, Menu, MenuItem, TAbstractFile } from 'obsidian';
+
+import { TaggerView, VIEW_TYPE } from './tagger';
 import { DEFAULT_SETTINGS, PhotoTaggingSettings, SampleSettingTab } from './settings';
 
 export default class PhotoTagging extends Plugin {
@@ -18,13 +9,12 @@ export default class PhotoTagging extends Plugin {
     async onload() {
         await this.loadSettings();
 
-        // This creates an icon in the left ribbon.
         this.addRibbonIcon('dice', 'Sample', (evt: MouseEvent) => {
-            // Called when the user clicks the icon.
             new Notice('This is a notice!');
         });
 
-        // This adds a settings tab so the user can configure various aspects of the plugin
+        this.registerView(VIEW_TYPE, (leaf) => new TaggerView(leaf));
+
         this.addSettingTab(new SampleSettingTab(this.app, this));
 
         this.registerEvent(
@@ -32,9 +22,14 @@ export default class PhotoTagging extends Plugin {
                 this.handleFileMenu(menu, file);
             }),
         );
+    }
 
-        // When registering intervals, this function will automatically clear the interval when the plugin is disabled.
-        this.registerInterval(window.setInterval(() => console.log('setInterval'), 5 * 60 * 1000));
+    async activateView() {
+        const leaf = this.app.workspace.getLeaf(true);
+        await leaf.setViewState({
+            type: VIEW_TYPE,
+            active: true,
+        });
     }
 
     onunload() {}
@@ -52,6 +47,7 @@ export default class PhotoTagging extends Plugin {
                     .setIcon('pin')
                     .onClick(async () => {
                         console.log('Tag people clicked');
+                        this.activateView().catch((err) => console.error(err));
                     });
             });
         }
@@ -67,21 +63,5 @@ export default class PhotoTagging extends Plugin {
 
     async saveSettings() {
         await this.saveData(this.settings);
-    }
-}
-
-class SampleModal extends Modal {
-    constructor(app: App) {
-        super(app);
-    }
-
-    onOpen() {
-        let { contentEl } = this;
-        contentEl.setText('Woah!');
-    }
-
-    onClose() {
-        const { contentEl } = this;
-        contentEl.empty();
     }
 }
