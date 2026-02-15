@@ -20,10 +20,18 @@ type PhotoCoords = {
     y: number;
 };
 
+type Tag = {
+    coords: PhotoCoords;
+    tagCoords: TagCoords;
+    person: string;
+};
+
 export const ReactView = ({ file }: TaggerState) => {
     const app = useContext(AppContext);
+
     const [coords, setCoords] = useState<PhotoCoords | null>(null);
     const [tagCoords, setTagCoords] = useState<TagCoords | null>(null);
+    const [tags, setTags] = useState<Tag[]>([]);
 
     const imageSrc = file instanceof TFile && app ? app.vault.getResourcePath(file) : null;
     const imageName = file?.name || 'Unknown';
@@ -58,6 +66,25 @@ export const ReactView = ({ file }: TaggerState) => {
         setSearchResults([]);
     };
 
+    const handleAddTag = () => {
+        if (!selectedFile || !coords || !tagCoords) {
+            return;
+        }
+
+        const newTag: Tag = {
+            person: selectedFile.basename,
+            coords: coords,
+            tagCoords: tagCoords,
+        };
+        setTags([...tags, newTag]);
+
+        setSelectedFile(null);
+        setSearchResults([]);
+        setSearchQuery('');
+        setCoords(null);
+        setTagCoords(null);
+    };
+
     const handleImageClick = (e: MouseEvent<HTMLImageElement>) => {
         const rect = e.currentTarget.getBoundingClientRect();
 
@@ -70,6 +97,7 @@ export const ReactView = ({ file }: TaggerState) => {
         const y = ((e.clientY - rect.top) / height) * naturalHeight;
 
         setCoords({ x, y });
+        setTagCoords({ x: e.clientX - rect.left, y: e.clientY - rect.top });
     };
 
     return (
@@ -82,18 +110,53 @@ export const ReactView = ({ file }: TaggerState) => {
                 overflow: 'hidden',
             }}
         >
-            <div style={{ aspectRatio: '1 / 1' }}>
+            <div style={{ position: 'relative' }}>
                 {imageSrc ? (
-                    <img
-                        src={imageSrc}
-                        onClick={handleImageClick}
-                        style={{
-                            objectFit: 'cover',
-                            cursor: 'crosshair',
-                        }}
-                        draggable={false}
-                        alt={imageName}
-                    />
+                    <>
+                        <img
+                            src={imageSrc}
+                            onClick={handleImageClick}
+                            style={{
+                                objectFit: 'cover',
+                                cursor: 'crosshair',
+                                width: '100%',
+                                height: '100%',
+                            }}
+                            draggable={false}
+                            alt={imageName}
+                        />
+                        {tagCoords && (
+                            <div
+                                style={{
+                                    position: 'absolute',
+                                    left: tagCoords.x,
+                                    top: tagCoords.y,
+                                    width: '10px',
+                                    height: '10px',
+                                    backgroundColor: 'blue',
+                                    borderRadius: '50%',
+                                    transform: 'translate(-50%, -50%)',
+                                    pointerEvents: 'none',
+                                }}
+                            />
+                        )}
+                        {tags.map((tag, index) => (
+                            <div
+                                key={`tag-${index}`}
+                                style={{
+                                    position: 'absolute',
+                                    left: tag.tagCoords.x,
+                                    top: tag.tagCoords.y,
+                                    width: '10px',
+                                    height: '10px',
+                                    backgroundColor: 'magenta',
+                                    borderRadius: '50%',
+                                    transform: 'translate(-50%, -50%)',
+                                    pointerEvents: 'none',
+                                }}
+                            />
+                        ))}
+                    </>
                 ) : (
                     <span>No Image Selected</span>
                 )}
@@ -111,7 +174,7 @@ export const ReactView = ({ file }: TaggerState) => {
                         ? `Coordinates: (${Math.round(coords.x)}, ${Math.round(coords.y)})`
                         : 'Click image to tag'}
                 </span>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5em' }}>
                     <input
                         type="text"
                         placeholder="Search page..."
@@ -146,6 +209,28 @@ export const ReactView = ({ file }: TaggerState) => {
                             </div>
                         ))}
                     </div>
+
+                    <button
+                        onClick={handleAddTag}
+                        disabled={!coords || !tagCoords || !selectedFile}
+                    >
+                        Add Tag
+                    </button>
+                    <hr />
+                    {tags.map((tag, index) => (
+                        <div
+                            key={`${index}-tag-description`}
+                            style={{
+                                display: 'inline-flex',
+                                justifyContent: 'space-between',
+                            }}
+                        >
+                            <span style={{ fontWeight: 'bold' }}>{tag.person}</span>
+                            <span>
+                                {`(${Math.round(tag.coords.x)}, ${Math.round(tag.coords.y)})`}
+                            </span>
+                        </div>
+                    ))}
                 </div>
             </div>
         </div>
