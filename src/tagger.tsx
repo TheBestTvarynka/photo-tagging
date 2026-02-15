@@ -24,6 +24,7 @@ type Tag = {
     coords: PhotoCoords;
     tagCoords: TagCoords;
     person: string;
+    filePath: string;
 };
 
 export const ReactView = ({ file }: TaggerState) => {
@@ -32,6 +33,7 @@ export const ReactView = ({ file }: TaggerState) => {
     const [coords, setCoords] = useState<PhotoCoords | null>(null);
     const [tagCoords, setTagCoords] = useState<TagCoords | null>(null);
     const [tags, setTags] = useState<Tag[]>([]);
+    const [hoveredTagIndex, setHoveredTagIndex] = useState<number | null>(null);
 
     const imageSrc = file instanceof TFile && app ? app.vault.getResourcePath(file) : null;
     const imageName = file?.name || 'Unknown';
@@ -75,6 +77,7 @@ export const ReactView = ({ file }: TaggerState) => {
             person: selectedFile.basename,
             coords: coords,
             tagCoords: tagCoords,
+            filePath: selectedFile.path,
         };
         setTags([...tags, newTag]);
 
@@ -83,6 +86,25 @@ export const ReactView = ({ file }: TaggerState) => {
         setSearchQuery('');
         setCoords(null);
         setTagCoords(null);
+    };
+
+    const openFile = async (file: TAbstractFile | null) => {
+        if (!app) {
+            return;
+        }
+
+        if (file instanceof TFile) {
+            await app.workspace.getLeaf(true).openFile(file);
+        }
+    };
+
+    const handleTagClick = async (filePath: string) => {
+        if (!app) {
+            return;
+        }
+
+        const file = app.vault.getAbstractFileByPath(filePath);
+        await openFile(file);
     };
 
     const handleImageClick = (e: MouseEvent<HTMLImageElement>) => {
@@ -147,12 +169,13 @@ export const ReactView = ({ file }: TaggerState) => {
                                     position: 'absolute',
                                     left: tag.tagCoords.x,
                                     top: tag.tagCoords.y,
-                                    width: '10px',
-                                    height: '10px',
+                                    width: hoveredTagIndex === index ? '20px' : '10px',
+                                    height: hoveredTagIndex === index ? '20px' : '10px',
                                     backgroundColor: 'magenta',
                                     borderRadius: '50%',
                                     transform: 'translate(-50%, -50%)',
                                     pointerEvents: 'none',
+                                    transition: 'width 0.5s, height 0.5s',
                                 }}
                             />
                         ))}
@@ -182,7 +205,42 @@ export const ReactView = ({ file }: TaggerState) => {
                         onChange={(e) => handleSearch(e.target.value)}
                     />
                     {selectedFile && (
-                        <div style={{ fontSize: '0.9em' }}>Selected: {selectedFile.basename}</div>
+                        <div
+                            style={{
+                                backgroundColor: 'var(--background-modifier-hover)',
+                                padding: '10px',
+                                borderRadius: '5px',
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                            }}
+                        >
+                            <span
+                                onClick={() => openFile(selectedFile)}
+                                style={{ cursor: 'pointer', flex: 1, marginRight: '8px' }}
+                            >
+                                {selectedFile.basename}
+                            </span>
+                            <button
+                                onClick={() => setSelectedFile(null)}
+                                style={{
+                                    background: 'none',
+                                    border: 'none',
+                                    color: 'var(--text-muted)',
+                                    cursor: 'pointer',
+                                    padding: '4px',
+                                    lineHeight: '1',
+                                    fontSize: '1.2em',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    height: 'auto',
+                                }}
+                                aria-label="Clear selection"
+                            >
+                                &times;
+                            </button>
+                        </div>
                     )}
                     <div
                         style={{
@@ -217,20 +275,32 @@ export const ReactView = ({ file }: TaggerState) => {
                         Add Tag
                     </button>
                     <hr />
-                    {tags.map((tag, index) => (
-                        <div
-                            key={`${index}-tag-description`}
-                            style={{
-                                display: 'inline-flex',
-                                justifyContent: 'space-between',
-                            }}
-                        >
-                            <span style={{ fontWeight: 'bold' }}>{tag.person}</span>
-                            <span>
-                                {`(${Math.round(tag.coords.x)}, ${Math.round(tag.coords.y)})`}
-                            </span>
-                        </div>
-                    ))}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
+                        {tags.map((tag, index) => (
+                            <div
+                                key={`${index}-tag-description`}
+                                onMouseEnter={() => setHoveredTagIndex(index)}
+                                onMouseLeave={() => setHoveredTagIndex(null)}
+                                onClick={() => handleTagClick(tag.filePath)}
+                                style={{
+                                    display: 'inline-flex',
+                                    justifyContent: 'space-between',
+                                    backgroundColor:
+                                        hoveredTagIndex === index
+                                            ? 'var(--background-modifier-hover)'
+                                            : 'transparent',
+                                    padding: '10px',
+                                    borderRadius: '5px',
+                                    cursor: 'pointer',
+                                }}
+                            >
+                                <span style={{ fontWeight: 'bold' }}>{tag.person}</span>
+                                <span>
+                                    {`(${Math.round(tag.coords.x)}, ${Math.round(tag.coords.y)})`}
+                                </span>
+                            </div>
+                        ))}
+                    </div>
                 </div>
             </div>
         </div>
