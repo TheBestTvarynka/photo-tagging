@@ -19,8 +19,22 @@ export const ReactView = ({ file }: TaggerState) => {
 
     const handleImageClick = (e: MouseEvent<HTMLImageElement>) => {
         const rect = e.currentTarget.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
+
+        console.log({ width: e.currentTarget.width, height: e.currentTarget.height });
+        console.log({
+            naturalWidth: e.currentTarget.naturalWidth,
+            naturalHeight: e.currentTarget.naturalHeight,
+        });
+
+        const width = e.currentTarget.width;
+        const height = e.currentTarget.height;
+
+        const naturalWidth = e.currentTarget.naturalWidth;
+        const naturalHeight = e.currentTarget.naturalHeight;
+
+        const x = ((e.clientX - rect.left) / width) * naturalWidth;
+        const y = ((e.clientY - rect.top) / height) * naturalHeight;
+
         setCoords({ x, y });
     };
 
@@ -31,33 +45,23 @@ export const ReactView = ({ file }: TaggerState) => {
                 width: '100%',
                 height: '100%',
                 gridTemplateColumns: '80% 20%',
+                overflow: 'hidden',
             }}
         >
-            <div
-                style={{
-                    height: '100%',
-                    overflow: 'hidden',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                }}
-            >
+            <div style={{ aspectRatio: '1 / 1' }}>
                 {imageSrc ? (
                     <img
                         src={imageSrc}
                         onClick={handleImageClick}
                         style={{
-                            maxWidth: '100%',
-                            maxHeight: '100%',
-                            objectFit: 'contain',
+                            objectFit: 'cover',
                             cursor: 'crosshair',
-                            display: 'block',
                         }}
                         draggable={false}
                         alt={imageName}
                     />
                 ) : (
-                    <div style={{ color: 'var(--text-muted)' }}>No Image Selected</div>
+                    <span>No Image Selected</span>
                 )}
             </div>
             <div
@@ -73,9 +77,6 @@ export const ReactView = ({ file }: TaggerState) => {
                     {coords
                         ? `X: ${Math.round(coords.x)}, Y: ${Math.round(coords.y)}`
                         : 'Click image to tag'}
-                </span>
-                <span style={{ fontFamily: 'monospace' }}>
-                    {coords ? `X: ${coords.x}, Y: ${coords.y}` : 'Click image to tag'}
                 </span>
             </div>
         </div>
