@@ -9,7 +9,7 @@ export default class PhotoTagging extends Plugin {
     async onload() {
         await this.loadSettings();
 
-        this.addRibbonIcon('dice', 'Sample', (evt: MouseEvent) => {
+        this.addRibbonIcon('dice', 'Sample', (_evt: MouseEvent) => {
             new Notice('This is a notice!');
         });
 
@@ -24,11 +24,14 @@ export default class PhotoTagging extends Plugin {
         );
     }
 
-    async activateView() {
+    async activateView(file: TAbstractFile) {
         const leaf = this.app.workspace.getLeaf(true);
         await leaf.setViewState({
             type: VIEW_TYPE,
             active: true,
+            state: {
+                file,
+            },
         });
     }
 
@@ -47,7 +50,7 @@ export default class PhotoTagging extends Plugin {
                     .setIcon('pin')
                     .onClick(async () => {
                         console.log('Tag people clicked');
-                        this.activateView().catch((err) => console.error(err));
+                        this.activateView(file).catch((err) => console.error(err));
                     });
             });
         }
