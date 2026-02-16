@@ -19,9 +19,9 @@ export default class PhotoTagging extends Plugin {
             }
 
             const data = await this.app.vault.adapter.read(this.settings.databaseFile);
-            this.tags = new Map(Object.entries(JSON.parse(data)));
+            this.tags = new Map(Object.entries(JSON.parse(data) as Record<string, Tag[]>));
         } catch (error) {
-            console.log('Error loading tags:', error);
+            console.error('Error loading tags:', error);
             this.tags = new Map();
         }
 

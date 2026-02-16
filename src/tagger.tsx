@@ -125,6 +125,12 @@ export const ReactView = ({ file, tags, setTags }: TaggerState) => {
         setTagCoords({ x: e.clientX - rect.left, y: e.clientY - rect.top });
     };
 
+    const handleDeleteTag = (e: MouseEvent, tagId: string) => {
+        e.stopPropagation();
+        const newTags = tags.filter((t) => t.id !== tagId);
+        setTags(newTags);
+    };
+
     return (
         <div
             style={{
@@ -305,6 +311,21 @@ export const ReactView = ({ file, tags, setTags }: TaggerState) => {
                                 <span>
                                     {`(${Math.round(tag.coords.x)}, ${Math.round(tag.coords.y)})`}
                                 </span>
+                                <button
+                                    onClick={(e) => handleDeleteTag(e, tag.id)}
+                                    style={{
+                                        background: 'none',
+                                        border: 'none',
+                                        color: 'var(--text-muted)',
+                                        cursor: 'pointer',
+                                        padding: '0 5px',
+                                        fontSize: '1.2em',
+                                        lineHeight: '1',
+                                    }}
+                                    aria-label="Remove tag"
+                                >
+                                    &times;
+                                </button>
                             </div>
                         ))}
                     </div>
@@ -342,6 +363,7 @@ export class TaggerView extends ItemView {
     /* eslint-disable  @typescript-eslint/no-explicit-any */
     /* eslint-disable  @typescript-eslint/no-unsafe-member-access */
     /* eslint-disable  @typescript-eslint/no-unsafe-assignment */
+    /* eslint-disable  @typescript-eslint/no-unsafe-call */
     async setState(state: any, result: ViewStateResult): Promise<void> {
         if (state) {
             this.taggerState = {
