@@ -1,4 +1,4 @@
-import { Notice, Plugin, Menu, MenuItem, TAbstractFile } from 'obsidian';
+import { Notice, Plugin, Menu, MenuItem, TAbstractFile, TFile } from 'obsidian';
 
 import { Tag, TaggerView, VIEW_TYPE } from './tagger';
 import { DEFAULT_SETTINGS, PhotoTaggingSettings, PhotoRaggingSettingTab } from './settings';
@@ -38,6 +38,34 @@ export default class PhotoTagging extends Plugin {
                 this.handleFileMenu(menu, file);
             }),
         );
+
+        this.registerMarkdownCodeBlockProcessor('tagged-photos', (source, el, ctx) => {
+            const currentFile = this.app.vault.getAbstractFileByPath(ctx.sourcePath);
+            if (!(currentFile instanceof TFile)) {
+                return;
+            }
+
+            const photos: string[] = [];
+
+            for (const [imagePath, fileTags] of this.tags.entries()) {
+                const isTagged = fileTags.some((tag) => tag.filePath === currentFile.path);
+                if (isTagged) {
+                    photos.push(imagePath);
+                }
+            }
+
+            const ul = el.createEl('ul');
+            photos.forEach((photoPath) => {
+                const li = ul.createEl('li');
+                const a = li.createEl('a');
+                a.innerText = photoPath;
+                a.href = '#';
+                a.onclick = (e) => {
+                    e.preventDefault();
+                    this.app.workspace.openLinkText(photoPath, '', true);
+                };
+            });
+        });
     }
 
     async activateView(file: TAbstractFile) {
