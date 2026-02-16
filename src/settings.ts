@@ -2,11 +2,11 @@ import { App, PluginSettingTab, Setting } from 'obsidian';
 import PhotoTagging from './main';
 
 export interface PhotoTaggingSettings {
-    mySetting: string;
+    databaseFile: string;
 }
 
 export const DEFAULT_SETTINGS: PhotoTaggingSettings = {
-    mySetting: 'default',
+    databaseFile: 'photo-tags.json',
 };
 
 export class PhotoRaggingSettingTab extends PluginSettingTab {
@@ -28,9 +28,9 @@ export class PhotoRaggingSettingTab extends PluginSettingTab {
             .addText((text) =>
                 text
                     .setPlaceholder('Enter your secret')
-                    .setValue(this.plugin.settings.mySetting)
+                    .setValue(this.plugin.settings.databaseFile)
                     .onChange(async (value) => {
-                        this.plugin.settings.mySetting = value;
+                        this.plugin.settings.databaseFile = value;
                         await this.plugin.saveSettings();
                     }),
             );
