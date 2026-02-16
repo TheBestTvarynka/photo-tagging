@@ -1,5 +1,13 @@
 import { ItemView, WorkspaceLeaf, ViewStateResult, TAbstractFile, App, TFile } from 'obsidian';
-import { createContext, StrictMode, useState, useContext, MouseEvent } from 'react';
+import {
+    createContext,
+    StrictMode,
+    useState,
+    useContext,
+    MouseEvent,
+    useRef,
+    useEffect,
+} from 'react';
 import { Root, createRoot } from 'react-dom/client';
 
 export const VIEW_TYPE = 'photo-tagger-view';
@@ -25,7 +33,6 @@ type PhotoCoords = {
 export type Tag = {
     id: string;
     coords: PhotoCoords;
-    tagCoords: TagCoords;
     person: string;
     filePath: string;
 };
@@ -39,6 +46,52 @@ export const ReactView = ({ file, tags, setTags }: TaggerState) => {
 
     const imageSrc = file instanceof TFile && app ? app.vault.getResourcePath(file) : null;
     const imageName = file?.name || 'Unknown';
+
+    const imgRef = useRef<HTMLImageElement>(null);
+    // We need it to calculate relative tag coordinates.
+    const [imgSize, setImgSize] = useState({
+        width: 0,
+        height: 0,
+        naturalWidth: 0,
+        naturalHeight: 0,
+    });
+
+    useEffect(() => {
+        const updateSize = () => {
+            if (!imgRef.current) {
+                return;
+            }
+
+            setImgSize({
+                width: imgRef.current.width,
+                height: imgRef.current.height,
+                naturalWidth: imgRef.current.naturalWidth,
+                naturalHeight: imgRef.current.naturalHeight,
+            });
+        };
+
+        const img = imgRef.current;
+        if (!img) {
+            return;
+        }
+
+        updateSize();
+        if (img.complete) {
+            updateSize();
+        }
+
+        img.addEventListener('load', updateSize);
+
+        const resizeObserver = new ResizeObserver(() => {
+            updateSize();
+        });
+        resizeObserver.observe(img);
+
+        return () => {
+            img.removeEventListener('load', updateSize);
+            resizeObserver.disconnect();
+        };
+    }, [imageSrc]);
 
     // Search state
     const [searchQuery, setSearchQuery] = useState('');
@@ -79,7 +132,6 @@ export const ReactView = ({ file, tags, setTags }: TaggerState) => {
             id: crypto.randomUUID(),
             person: selectedFile.basename,
             coords: coords,
-            tagCoords: tagCoords,
             filePath: selectedFile.path,
         };
         setTags([...tags, newTag]);
@@ -145,10 +197,11 @@ export const ReactView = ({ file, tags, setTags }: TaggerState) => {
                 {imageSrc ? (
                     <>
                         <img
+                            ref={imgRef}
                             src={imageSrc}
                             onClick={handleImageClick}
                             style={{
-                                objectFit: 'cover',
+                                objectFit: 'contain',
                                 cursor: 'crosshair',
                                 width: '100%',
                                 height: '100%',
@@ -171,23 +224,28 @@ export const ReactView = ({ file, tags, setTags }: TaggerState) => {
                                 }}
                             />
                         )}
-                        {tags.map((tag, index) => (
-                            <div
-                                key={`tag-${index}`}
-                                style={{
-                                    position: 'absolute',
-                                    left: tag.tagCoords.x,
-                                    top: tag.tagCoords.y,
-                                    width: hoveredTagIndex === index ? '20px' : '10px',
-                                    height: hoveredTagIndex === index ? '20px' : '10px',
-                                    backgroundColor: 'magenta',
-                                    borderRadius: '50%',
-                                    transform: 'translate(-50%, -50%)',
-                                    pointerEvents: 'none',
-                                    transition: 'width 0.5s, height 0.5s',
-                                }}
-                            />
-                        ))}
+                        {tags.map((tag, index) => {
+                            const x = (tag.coords.x / imgSize.naturalWidth) * imgSize.width;
+                            const y = (tag.coords.y / imgSize.naturalHeight) * imgSize.height;
+
+                            return (
+                                <div
+                                    key={`tag-${index}`}
+                                    style={{
+                                        position: 'absolute',
+                                        left: x,
+                                        top: y,
+                                        width: hoveredTagIndex === index ? '20px' : '10px',
+                                        height: hoveredTagIndex === index ? '20px' : '10px',
+                                        backgroundColor: 'magenta',
+                                        borderRadius: '50%',
+                                        transform: 'translate(-50%, -50%)',
+                                        pointerEvents: 'none',
+                                        transition: 'width 0.5s, height 0.5s',
+                                    }}
+                                />
+                            );
+                        })}
                     </>
                 ) : (
                     <span>No Image Selected</span>
@@ -228,7 +286,7 @@ export const ReactView = ({ file, tags, setTags }: TaggerState) => {
                                 onClick={() => {
                                     openFile(selectedFile).catch((err) => console.error(err));
                                 }}
-                                style={{ cursor: 'pointer', flex: 1, marginRight: '8px' }}
+                                style={{ cursor: 'pointer', alignSelf: 'center' }}
                             >
                                 {selectedFile.basename}
                             </span>
@@ -307,8 +365,10 @@ export const ReactView = ({ file, tags, setTags }: TaggerState) => {
                                     cursor: 'pointer',
                                 }}
                             >
-                                <span style={{ fontWeight: 'bold' }}>{tag.person}</span>
-                                <span>
+                                <span style={{ fontWeight: 'bold', alignSelf: 'center' }}>
+                                    {tag.person}
+                                </span>
+                                <span style={{ alignSelf: 'center' }}>
                                     {`(${Math.round(tag.coords.x)}, ${Math.round(tag.coords.y)})`}
                                 </span>
                                 <button
