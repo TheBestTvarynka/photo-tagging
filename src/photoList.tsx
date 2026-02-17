@@ -20,8 +20,8 @@ type Photo = {
     height: number;
 };
 
-const PhotoListComponent = ({ app, ctx, tags }: PhotoListProps) => {
-    const galleryId = 'tbt';
+const PhotoList = ({ app, ctx, tags }: PhotoListProps) => {
+    const galleryId = 'taggedphotosgallery';
 
     const [photos, setPhotos] = useState<Photo[]>([]);
 
@@ -95,7 +95,7 @@ export const mountPhotoList = (
     const root = createRoot(el);
     root.render(
         <StrictMode>
-            <PhotoListComponent app={app} ctx={ctx} tags={tags} />
+            <PhotoList app={app} ctx={ctx} tags={tags} />
         </StrictMode>,
     );
 };
