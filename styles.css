@@ -368,6 +368,7 @@ photoswipe/dist/photoswipe.css:
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
     gap: 0.5rem;
     max-width: 100%;
+    align-items: center;
 }
 
 .pswp-gallery img {
