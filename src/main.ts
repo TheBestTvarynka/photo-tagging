@@ -1,7 +1,8 @@
-import { Notice, Plugin, Menu, MenuItem, TAbstractFile } from 'obsidian';
+import { Plugin, Menu, MenuItem, TAbstractFile } from 'obsidian';
 
 import { Tag, TaggerView, VIEW_TYPE } from './tagger';
 import { DEFAULT_SETTINGS, PhotoTaggingSettings, PhotoRaggingSettingTab } from './settings';
+import { mountPhotoList } from './photoList';
 
 // Key is file path, value is list of tags.
 type TagsDb = Map<string, Tag[]>;
@@ -25,10 +26,6 @@ export default class PhotoTagging extends Plugin {
             this.tags = new Map();
         }
 
-        this.addRibbonIcon('dice', 'Sample', (_evt: MouseEvent) => {
-            new Notice('This is a notice!');
-        });
-
         this.registerView(VIEW_TYPE, (leaf) => new TaggerView(leaf));
 
         this.addSettingTab(new PhotoRaggingSettingTab(this.app, this));
@@ -38,6 +35,10 @@ export default class PhotoTagging extends Plugin {
                 this.handleFileMenu(menu, file);
             }),
         );
+
+        this.registerMarkdownCodeBlockProcessor('tagged-photos', (_source, el, ctx) => {
+            mountPhotoList(el, this.app, ctx, this.tags);
+        });
     }
 
     async activateView(file: TAbstractFile) {
@@ -64,7 +65,7 @@ export default class PhotoTagging extends Plugin {
         await this.app.vault.adapter.write(this.settings.databaseFile, JSON.stringify(obj));
     }
 
-    onunload() {}
+    onunload() { }
 
     handleFileMenu(menu: Menu, file: TAbstractFile) {
         if (

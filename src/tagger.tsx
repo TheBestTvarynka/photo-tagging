@@ -35,6 +35,8 @@ export type Tag = {
     coords: PhotoCoords;
     person: string;
     filePath: string;
+    imageWidth: number;
+    imageHeight: number;
 };
 
 export const ReactView = ({ file, tags, setTags }: TaggerState) => {
@@ -133,6 +135,8 @@ export const ReactView = ({ file, tags, setTags }: TaggerState) => {
             person: selectedFile.basename,
             coords: coords,
             filePath: selectedFile.path,
+            imageWidth: imgSize.naturalWidth,
+            imageHeight: imgSize.naturalHeight,
         };
         setTags([...tags, newTag]);
 
@@ -408,7 +412,7 @@ export class TaggerView extends ItemView {
     }
 
     getDisplayText() {
-        return 'Tagger';
+        return this.taggerState.file instanceof TFile ? this.taggerState.file.basename : 'Tagger';
     }
 
     async onOpen() {
