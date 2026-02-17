@@ -2,6 +2,9 @@ import { App, MarkdownPostProcessorContext, TFile } from 'obsidian';
 import { StrictMode, useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 
+import 'photoswipe/dist/photoswipe.css';
+import { Gallery, Item } from 'react-photoswipe-gallery';
+
 import { Tag } from './tagger';
 
 interface PhotoListProps {
@@ -42,23 +45,35 @@ const PhotoListComponent = ({ app, ctx, tags }: PhotoListProps) => {
     }
 
     return (
-        <ul>
-            {photos.map((photoPath) => (
-                <li key={photoPath}>
-                    <a
-                        href="#"
-                        onClick={(e) => {
-                            e.preventDefault();
-                            app.workspace
-                                .openLinkText(photoPath, '', true)
-                                .catch((err) => console.error(err));
-                        }}
+        <Gallery>
+            {photos.map((photoPath) => {
+                const file = app.vault.getAbstractFileByPath(photoPath);
+                if (!(file instanceof TFile)) {
+                    return null;
+                }
+
+                const imageSrc = app.vault.getResourcePath(file);
+
+                return (
+                    <Item
+                        key={photoPath}
+                        original={imageSrc}
+                        thumbnail={imageSrc}
+                        width="1024"
+                        height="768"
                     >
-                        {photoPath}
-                    </a>
-                </li>
-            ))}
-        </ul>
+                        {({ ref, open }) => (
+                            <img
+                                ref={ref}
+                                onClick={open}
+                                src={imageSrc}
+                                alt={file.basename}
+                            />
+                        )}
+                    </Item>
+                );
+            })}
+        </Gallery>
     );
 };
 
