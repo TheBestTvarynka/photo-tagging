@@ -65,7 +65,7 @@ export default class PhotoTagging extends Plugin {
         await this.app.vault.adapter.write(this.settings.databaseFile, JSON.stringify(obj));
     }
 
-    onunload() { }
+    onunload() {}
 
     handleFileMenu(menu: Menu, file: TAbstractFile) {
         if (

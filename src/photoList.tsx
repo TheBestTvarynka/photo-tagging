@@ -15,14 +15,20 @@ interface PhotoListProps {
 }
 
 type Photo = {
+    // Image path for embedding.
+    //
+    // From Obsidian docs: URI for the browser engine to use, for example to embed an image.
     resourcePath: string;
+    // Original file path in vault, used for context menu actions.
     path: string;
+    // Original image width.
     width: number;
+    // Original image height.
     height: number;
 };
 
 const PhotoList = ({ app, ctx, tags }: PhotoListProps) => {
-    const galleryId = 'taggedphotosgallery';
+    const galleryId = 'taggedphotosgallery' + ctx.docId;
 
     const [photos, setPhotos] = useState<Photo[]>([]);
 
