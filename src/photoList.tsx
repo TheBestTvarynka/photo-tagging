@@ -1,5 +1,5 @@
-import { App, MarkdownPostProcessorContext, TFile } from 'obsidian';
-import { StrictMode, useEffect, useState } from 'react';
+import { App, MarkdownPostProcessorContext, Menu, TFile } from 'obsidian';
+import { MouseEventHandler, StrictMode, useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 
 import PhotoSwipeLightbox from 'photoswipe/lightbox';
@@ -15,6 +15,7 @@ interface PhotoListProps {
 }
 
 type Photo = {
+    resourcePath: string;
     path: string;
     width: number;
     height: number;
@@ -58,7 +59,8 @@ const PhotoList = ({ app, ctx, tags }: PhotoListProps) => {
                 }
 
                 foundPhotos.push({
-                    path: app.vault.getResourcePath(image),
+                    resourcePath: app.vault.getResourcePath(image),
+                    path: imagePath,
                     width: tag.imageWidth,
                     height: tag.imageHeight,
                 });
@@ -70,18 +72,37 @@ const PhotoList = ({ app, ctx, tags }: PhotoListProps) => {
 
     return (
         <div className="pswp-gallery" id={galleryId}>
-            {photos.map((image, index) => (
-                <a
-                    href={image.path}
-                    data-pswp-width={image.width}
-                    data-pswp-height={image.height}
-                    key={galleryId + '-' + index}
-                    target="_blank"
-                    rel="noreferrer"
-                >
-                    <img src={image.path} alt="" />
-                </a>
-            ))}
+            {photos.map((image, index) => {
+                const handleImageContextMenu: MouseEventHandler<HTMLImageElement> = (event) => {
+                    event.preventDefault();
+                    const file = app.vault.getAbstractFileByPath(image.path);
+
+                    if (file instanceof TFile) {
+                        const menu = new Menu();
+                        app.workspace.trigger('file-menu', menu, file, 'canvas-context-menu');
+                        menu.showAtPosition({ x: event.pageX, y: event.pageY });
+                    } else {
+                        console.warn('file not found', image.path);
+                    }
+                };
+
+                return (
+                    <a
+                        href={image.resourcePath}
+                        data-pswp-width={image.width}
+                        data-pswp-height={image.height}
+                        key={galleryId + '-' + index}
+                        target="_blank"
+                        rel="noreferrer"
+                    >
+                        <img
+                            src={image.resourcePath}
+                            alt=""
+                            onContextMenu={handleImageContextMenu}
+                        />
+                    </a>
+                );
+            })}
         </div>
     );
 };
