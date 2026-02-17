@@ -1,4 +1,4 @@
-import { Notice, Plugin, Menu, MenuItem, TAbstractFile } from 'obsidian';
+import { Plugin, Menu, MenuItem, TAbstractFile } from 'obsidian';
 
 import { Tag, TaggerView, VIEW_TYPE } from './tagger';
 import { DEFAULT_SETTINGS, PhotoTaggingSettings, PhotoRaggingSettingTab } from './settings';
@@ -25,10 +25,6 @@ export default class PhotoTagging extends Plugin {
             console.error('Error loading tags:', error);
             this.tags = new Map();
         }
-
-        this.addRibbonIcon('dice', 'Sample', (_evt: MouseEvent) => {
-            new Notice('This is a notice!');
-        });
 
         this.registerView(VIEW_TYPE, (leaf) => new TaggerView(leaf));
 
@@ -69,7 +65,7 @@ export default class PhotoTagging extends Plugin {
         await this.app.vault.adapter.write(this.settings.databaseFile, JSON.stringify(obj));
     }
 
-    onunload() {}
+    onunload() { }
 
     handleFileMenu(menu: Menu, file: TAbstractFile) {
         if (

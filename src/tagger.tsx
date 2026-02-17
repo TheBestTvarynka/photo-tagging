@@ -412,7 +412,7 @@ export class TaggerView extends ItemView {
     }
 
     getDisplayText() {
-        return 'Tagger';
+        return this.taggerState.file instanceof TFile ? this.taggerState.file.basename : 'Tagger';
     }
 
     async onOpen() {
