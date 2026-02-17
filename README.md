@@ -2,15 +2,52 @@
 
 Obsidian plugin for tagging people on photos.
 
+- [Motivation](#motivation)
+- [Installation](#installation)
+- [Manual](#manual)
+- [BDFL](#bdfl)
+
 ## Motivation
 
-### How it works
+I have a lot of genealogy data regarding my family and its history. I use Obsidian to work with this data.
+At some point, I needed a simple software to tag people on photos and then show a person's photos on their page.
+I did not find the existing plugin, so I decided to write my own.
 
 ## Installation
 
-## Usage
+> [!NOTE]
+> Currently, the plugin has not been submitted to the [official list of plugins](https://github.com/obsidianmd/obsidian-releases/blob/master/community-plugins.json) because it is still in development and not ready for widespread use.
 
-## Showcase
+You can try this plugin by cloning the repo and enabling it in the Obsidian vault settings.
+
+1. Clone the repo into the `plugins/` directory:
+   ```bash
+   mkdir -p {vault}/.obsidian/plugins/
+   cd {vault}/.obsidian/plugins/
+   git clone https://github.com/TheBestTvarynka/photo-tagging.git
+   ```
+2. Enable the Photo-tagging plugin in Obsidian settings (`Community Plugins` section).
+
+## Manual
+
+1. You manually add tags to photos using the built-in tagger:
+   ![](./assets/tagging.png)
+   
+   You can open tagger from the file context menu (`Tag people` option):
+   
+   ![](./assets/context_menu.png)
+2. Every tag is linked to some note. In my case, every note represents a person.
+3. Add the following code block to see the person's photos inside the note:
+   ```md
+       ```tagged-photos
+       ```
+   ```
+   The plugin automatically resolves photos assigned to the current person:
+
+   ![](./assets/profile.png)
+
+All tags are saved inside JSON file. By default, the JSON file is located in the `photo-tags.json` at the root of the vault.
+You can change it in the plugin settings.
 
 ## BDFL
 
