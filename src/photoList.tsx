@@ -2,8 +2,9 @@ import { App, MarkdownPostProcessorContext, TFile } from 'obsidian';
 import { StrictMode, useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 
+import PhotoSwipeLightbox from 'photoswipe/lightbox';
+import 'photoswipe/style.css';
 import 'photoswipe/dist/photoswipe.css';
-import { Gallery, Item } from 'react-photoswipe-gallery';
 
 import { Tag } from './tagger';
 
@@ -13,67 +14,75 @@ interface PhotoListProps {
     tags: Map<string, Tag[]>;
 }
 
+type Photo = {
+    path: string;
+    width: number;
+    height: number;
+};
+
 const PhotoListComponent = ({ app, ctx, tags }: PhotoListProps) => {
-    const [photos, setPhotos] = useState<string[]>([]);
-    const [loading, setLoading] = useState(true);
+    const galleryId = 'tbt';
+
+    const [photos, setPhotos] = useState<Photo[]>([]);
+
+    useEffect(() => {
+        let lightbox: PhotoSwipeLightbox | null = new PhotoSwipeLightbox({
+            gallery: '#' + galleryId,
+            children: 'a',
+            pswpModule: () => import('photoswipe'),
+        });
+        lightbox.init();
+
+        return () => {
+            if (lightbox) {
+                lightbox.destroy();
+            }
+            lightbox = null;
+        };
+    }, []);
 
     useEffect(() => {
         const currentFile = app.vault.getAbstractFileByPath(ctx.sourcePath);
-        if (!(currentFile instanceof TFile)) {
-            setLoading(false);
 
+        if (!(currentFile instanceof TFile)) {
             return;
         }
 
-        const foundPhotos: string[] = [];
+        const foundPhotos: Photo[] = [];
         for (const [imagePath, fileTags] of tags.entries()) {
-            const isTagged = fileTags.some((tag) => tag.filePath === currentFile.path);
-            if (isTagged) {
-                foundPhotos.push(imagePath);
-            }
-        }
-        setPhotos(foundPhotos);
-        setLoading(false);
-    }, [app, ctx.sourcePath, tags]);
-
-    if (loading) {
-        return <div>Loading...</div>;
-    }
-
-    if (photos.length === 0) {
-        return <p>No photos found for this person.</p>;
-    }
-
-    return (
-        <Gallery>
-            {photos.map((photoPath) => {
-                const file = app.vault.getAbstractFileByPath(photoPath);
-                if (!(file instanceof TFile)) {
-                    return null;
+            const tag = fileTags.find((tag) => tag.filePath === currentFile.path);
+            if (tag) {
+                const image = app.vault.getAbstractFileByPath(imagePath);
+                if (!(image instanceof TFile)) {
+                    continue;
                 }
 
-                const imageSrc = app.vault.getResourcePath(file);
+                foundPhotos.push({
+                    path: app.vault.getResourcePath(image),
+                    width: tag.imageWidth,
+                    height: tag.imageHeight,
+                });
+            }
+        }
 
-                return (
-                    <Item
-                        key={photoPath}
-                        original={imageSrc}
-                        thumbnail={imageSrc}
-                        width="1024"
-                        height="768"
-                    >
-                        {({ ref, open }) => (
-                            <img
-                                ref={ref}
-                                onClick={open}
-                                src={imageSrc}
-                                alt={file.basename}
-                            />
-                        )}
-                    </Item>
-                );
-            })}
-        </Gallery>
+        setPhotos(foundPhotos);
+    }, [app, ctx.sourcePath, tags]);
+
+    return (
+        <div className="pswp-gallery" id={galleryId}>
+            {photos.map((image, index) => (
+                <a
+                    href={image.path}
+                    data-pswp-width={image.width}
+                    data-pswp-height={image.height}
+                    key={galleryId + '-' + index}
+                    target="_blank"
+                    rel="noreferrer"
+                >
+                    <img src={image.path} alt="" />
+                </a>
+            ))}
+        </div>
     );
 };
 
