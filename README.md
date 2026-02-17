@@ -35,15 +35,16 @@ You can try this plugin by cloning the repo and enabling it in the Obsidian vaul
 
 1. You manually add tags to photos using the built-in tagger:
    ![](./assets/tagging.png)
+   You can open tagger from the file context menu (`Tag people` option):
+   ![](./assets/context_menu.png)
 2. Every tag is linked to some note. In my case, every note represents a person.
-3. Add the following code block to see person's photos inside the note:
+3. Add the following code block to see the person's photos inside the note:
    ```md
-   \```tagged-photos
-   \```
+       ```tagged-photos
+       ```
    ```
-   The plugin automatically resolves photos assigned to the current page:
-
-![](./assets/profile.png)
+   The plugin automatically resolves photos assigned to the current person:
+   ![](./assets/profile.png)
 
 ## BDFL
 
