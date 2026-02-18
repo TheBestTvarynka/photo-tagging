@@ -16,7 +16,8 @@ I did not find the existing plugin, so I decided to write my own.
 ## Installation
 
 > [!NOTE]
-> Currently, the plugin has not been submitted to the [official list of plugins](https://github.com/obsidianmd/obsidian-releases/blob/master/community-plugins.json) because it is still in development and not ready for widespread use.
+> The plugin has not been submitted to the [official list of plugins](https://github.com/obsidianmd/obsidian-releases/blob/master/community-plugins.json) because it is used only by me, and I wrote it especially for my own needs.
+> If you find this plugin useful and want it to be in the official plugins list, please create an issue, and I will do it.
 
 You can try this plugin by cloning the repo and enabling it in the Obsidian vault settings.
 
