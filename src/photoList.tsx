@@ -138,6 +138,8 @@ const PhotoList = ({ app, ctx, tags, hashTags, source }: PhotoListProps) => {
         if (!groupByHashtags) return [];
 
         const groups: { name: string; photos: Photo[] }[] = [];
+        const taggedPaths = new Set<string>();
+
         for (const [hashtagName, imagePaths] of hashTags.entries()) {
             const matching = imagePaths
                 .filter((path) => personImagePaths.has(path))
@@ -146,7 +148,16 @@ const PhotoList = ({ app, ctx, tags, hashTags, source }: PhotoListProps) => {
 
             if (matching.length > 0) {
                 groups.push({ name: hashtagName, photos: matching });
+                for (const p of matching) {
+                    taggedPaths.add(p.path);
+                }
             }
+        }
+
+        // Collect photos that don't belong to any hashtag.
+        const untagged = allPhotos.filter((p) => !taggedPaths.has(p.path));
+        if (untagged.length > 0) {
+            groups.push({ name: 'Other', photos: untagged });
         }
 
         return groups;
