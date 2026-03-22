@@ -57,25 +57,31 @@ const HashtagInput = ({
     const [isFocused, setIsFocused] = useState(false);
 
     const suggestions = useMemo(() => {
-        if (!query.trim()) return [];
+        if (!query.trim()) {
+            return [];
+        }
+
         const q = query.toLowerCase();
         return allHashtagNames.filter(
             (name) => name.toLowerCase().includes(q) && !hashtags.includes(name),
         );
     }, [query, allHashtagNames, hashtags]);
 
-    const exactMatch = allHashtagNames.some((n) => n.toLowerCase() === query.trim().toLowerCase());
+    const exactMatch = allHashtagNames.some(
+        (hashtagName) => hashtagName.toLowerCase() === query.trim().toLowerCase(),
+    );
     const showCreate = query.trim() && !exactMatch && !hashtags.includes(query.trim());
 
     const addHashtag = (name: string) => {
         if (!hashtags.includes(name)) {
             setHashtags([...hashtags, name]);
         }
+
         setQuery('');
     };
 
     const removeHashtag = (name: string) => {
-        setHashtags(hashtags.filter((h) => h !== name));
+        setHashtags(hashtags.filter((hashtagName) => hashtagName !== name));
     };
 
     const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {

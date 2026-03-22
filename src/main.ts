@@ -9,11 +9,6 @@ type TagsDb = Map<string, Tag[]>;
 // Key is the hashtag name and value is list of image paths.
 type HashTagsDb = Map<string, string[]>;
 
-type Db = {
-    tags: TagsDb;
-    hashTags: HashTagsDb;
-};
-
 type SerializedDb = {
     tags: Record<string, Tag[]>;
     hashTags: Record<string, string[]>;
@@ -76,23 +71,26 @@ export default class PhotoTagging extends Plugin {
         }
 
         const setHashtags = (newHashtags: string[]) => {
+            // Yes, at this point it would be easier to use SQLite, but I think
+            // the project is not big enough to use it (at least yet).
+
             // Remove this image from all hashtags it was previously in.
             for (const [name, paths] of this.hashTags.entries()) {
-                const filtered = paths.filter((p) => p !== file.path);
-                if (filtered.length === 0) {
-                    this.hashTags.delete(name);
-                } else {
-                    this.hashTags.set(name, filtered);
-                }
+                const filtered = paths.filter((path) => path !== file.path);
+
+                this.hashTags.set(name, filtered);
             }
+
             // Add this image to each of the new hashtags.
-            for (const ht of newHashtags) {
-                const existing = this.hashTags.get(ht) || [];
+            for (const hashtag of newHashtags) {
+                const existing = this.hashTags.get(hashtag) || [];
                 if (!existing.includes(file.path)) {
                     existing.push(file.path);
+
+                    this.hashTags.set(hashtag, existing);
                 }
-                this.hashTags.set(ht, existing);
             }
+
             this.saveDb().catch((err) => console.error(err));
         };
 
@@ -130,7 +128,7 @@ export default class PhotoTagging extends Plugin {
             file.name.endsWith('.jpeg')
         ) {
             menu.addItem((item: MenuItem) => {
-                item.setTitle('Tag people')
+                item.setTitle('Open in tagger')
                     .setIcon('pin')
                     .onClick(async () => {
                         this.activateView(file).catch((err) => console.error(err));

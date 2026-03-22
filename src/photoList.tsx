@@ -140,14 +140,15 @@ const PhotoList = ({ app, ctx, tags, hashTags, source }: PhotoListProps) => {
         const groups: { name: string; photos: Photo[] }[] = [];
         for (const [hashtagName, imagePaths] of hashTags.entries()) {
             const matching = imagePaths
-                .filter((p) => personImagePaths.has(p))
-                .map((p) => allPhotos.find((photo) => photo.path === p))
-                .filter((p): p is Photo => p !== undefined);
+                .filter((path) => personImagePaths.has(path))
+                .map((path) => allPhotos.find((photo) => photo.path === path))
+                .filter((path): path is Photo => path !== undefined);
 
             if (matching.length > 0) {
                 groups.push({ name: hashtagName, photos: matching });
             }
         }
+
         return groups;
     }, [groupByHashtags, hashTags, personImagePaths, allPhotos]);
 
