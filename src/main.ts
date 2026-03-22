@@ -55,8 +55,8 @@ export default class PhotoTagging extends Plugin {
             }),
         );
 
-        this.registerMarkdownCodeBlockProcessor('tagged-photos', (_source, el, ctx) => {
-            mountPhotoList(el, this.app, ctx, this.tags);
+        this.registerMarkdownCodeBlockProcessor('tagged-photos', (source, el, ctx) => {
+            mountPhotoList(el, this.app, ctx, this.tags, this.hashTags, source);
         });
     }
 
