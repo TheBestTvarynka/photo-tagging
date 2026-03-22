@@ -6,24 +6,38 @@ import { mountPhotoList } from './photoList';
 
 // Key is file path, value is list of tags.
 type TagsDb = Map<string, Tag[]>;
+// Key is the hashtag name and value is list of image paths.
+type HashTagsDb = Map<string, string[]>;
+
+type SerializedDb = {
+    tags: Record<string, Tag[]>;
+    hashTags: Record<string, string[]>;
+};
 
 export default class PhotoTagging extends Plugin {
     settings: PhotoTaggingSettings;
     tags: TagsDb;
+    hashTags: HashTagsDb;
 
     async onload() {
         await this.loadSettings();
 
         try {
             if (!(await this.app.vault.adapter.exists(this.settings.databaseFile))) {
-                await this.app.vault.adapter.write(this.settings.databaseFile, '{}');
+                await this.app.vault.adapter.write(
+                    this.settings.databaseFile,
+                    JSON.stringify({ tags: {}, hashTags: {} }),
+                );
             }
 
             const data = await this.app.vault.adapter.read(this.settings.databaseFile);
-            this.tags = new Map(Object.entries(JSON.parse(data) as Record<string, Tag[]>));
+            const parsed = JSON.parse(data) as Partial<SerializedDb>;
+            this.tags = new Map(Object.entries(parsed.tags ?? {}));
+            this.hashTags = new Map(Object.entries(parsed.hashTags ?? {}));
         } catch (error) {
-            console.error('Error loading tags:', error);
+            console.error('Error loading db:', error);
             this.tags = new Map();
+            this.hashTags = new Map();
         }
 
         this.registerView(VIEW_TYPE, (leaf) => new TaggerView(leaf));
@@ -36,8 +50,8 @@ export default class PhotoTagging extends Plugin {
             }),
         );
 
-        this.registerMarkdownCodeBlockProcessor('tagged-photos', (_source, el, ctx) => {
-            mountPhotoList(el, this.app, ctx, this.tags);
+        this.registerMarkdownCodeBlockProcessor('tagged-photos', (source, el, ctx) => {
+            mountPhotoList(el, this.app, ctx, this.tags, this.hashTags, source);
         });
     }
 
@@ -45,8 +59,42 @@ export default class PhotoTagging extends Plugin {
         const tags = this.tags.get(file.path) || [];
         const setTags = (tags: Tag[]) => {
             this.tags.set(file.path, tags);
-            this.saveTags().catch((err) => console.error(err));
+            this.saveDb().catch((err) => console.error(err));
         };
+
+        // Collect hashtags currently attached to this image.
+        const hashtags: string[] = [];
+        for (const [name, paths] of this.hashTags.entries()) {
+            if (paths.includes(file.path)) {
+                hashtags.push(name);
+            }
+        }
+
+        const setHashtags = (newHashtags: string[]) => {
+            // Yes, at this point it would be easier to use SQLite, but I think
+            // the project is not big enough to use it (at least yet).
+
+            // Remove this image from all hashtags it was previously in.
+            for (const [name, paths] of this.hashTags.entries()) {
+                const filtered = paths.filter((path) => path !== file.path);
+
+                this.hashTags.set(name, filtered);
+            }
+
+            // Add this image to each of the new hashtags.
+            for (const hashtag of newHashtags) {
+                const existing = this.hashTags.get(hashtag) || [];
+                if (!existing.includes(file.path)) {
+                    existing.push(file.path);
+
+                    this.hashTags.set(hashtag, existing);
+                }
+            }
+
+            this.saveDb().catch((err) => console.error(err));
+        };
+
+        const allHashtagNames = Array.from(this.hashTags.keys());
 
         const leaf = this.app.workspace.getLeaf(true);
         await leaf.setViewState({
@@ -56,13 +104,19 @@ export default class PhotoTagging extends Plugin {
                 file,
                 tags,
                 setTags,
+                hashtags,
+                setHashtags,
+                allHashtagNames,
             },
         });
     }
 
-    async saveTags() {
-        const obj = Object.fromEntries(this.tags);
-        await this.app.vault.adapter.write(this.settings.databaseFile, JSON.stringify(obj));
+    async saveDb() {
+        const db: SerializedDb = {
+            tags: Object.fromEntries(this.tags),
+            hashTags: Object.fromEntries(this.hashTags),
+        };
+        await this.app.vault.adapter.write(this.settings.databaseFile, JSON.stringify(db));
     }
 
     onunload() {}
@@ -74,7 +128,7 @@ export default class PhotoTagging extends Plugin {
             file.name.endsWith('.jpeg')
         ) {
             menu.addItem((item: MenuItem) => {
-                item.setTitle('Tag people')
+                item.setTitle('Open in tagger')
                     .setIcon('pin')
                     .onClick(async () => {
                         this.activateView(file).catch((err) => console.error(err));

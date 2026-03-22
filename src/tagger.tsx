@@ -7,6 +7,8 @@ import {
     MouseEvent,
     useRef,
     useEffect,
+    useMemo,
+    KeyboardEvent,
 } from 'react';
 import { Root, createRoot } from 'react-dom/client';
 
@@ -16,6 +18,9 @@ interface TaggerState {
     file: TAbstractFile | null;
     tags: Tag[];
     setTags: (tags: Tag[]) => void;
+    hashtags: string[];
+    setHashtags: (hashtags: string[]) => void;
+    allHashtagNames: string[];
 }
 
 export const AppContext = createContext<App | undefined>(undefined);
@@ -39,7 +44,172 @@ export type Tag = {
     imageHeight: number;
 };
 
-export const ReactView = ({ file, tags, setTags }: TaggerState) => {
+const HashtagInput = ({
+    hashtags,
+    setHashtags,
+    allHashtagNames,
+}: {
+    hashtags: string[];
+    setHashtags: (hashtags: string[]) => void;
+    allHashtagNames: string[];
+}) => {
+    const [query, setQuery] = useState('');
+    const [isFocused, setIsFocused] = useState(false);
+
+    const suggestions = useMemo(() => {
+        if (!query.trim()) {
+            return [];
+        }
+
+        const q = query.toLowerCase();
+        return allHashtagNames.filter(
+            (name) => name.toLowerCase().includes(q) && !hashtags.includes(name),
+        );
+    }, [query, allHashtagNames, hashtags]);
+
+    const exactMatch = allHashtagNames.some(
+        (hashtagName) => hashtagName.toLowerCase() === query.trim().toLowerCase(),
+    );
+    const showCreate = query.trim() && !exactMatch && !hashtags.includes(query.trim());
+
+    const addHashtag = (name: string) => {
+        if (!hashtags.includes(name)) {
+            setHashtags([...hashtags, name]);
+        }
+
+        setQuery('');
+    };
+
+    const removeHashtag = (name: string) => {
+        setHashtags(hashtags.filter((hashtagName) => hashtagName !== name));
+    };
+
+    const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Enter' && query.trim()) {
+            e.preventDefault();
+            // If there's exactly one suggestion, pick it; otherwise create.
+            if (suggestions.length === 1) {
+                addHashtag(suggestions[0]!);
+            } else if (showCreate) {
+                addHashtag(query.trim());
+            } else if (suggestions.length > 0) {
+                addHashtag(suggestions[0]!);
+            }
+        }
+    };
+
+    return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <div style={{ position: 'relative' }}>
+                <input
+                    type="text"
+                    placeholder="Add hashtag..."
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    onFocus={() => setIsFocused(true)}
+                    onBlur={() => {
+                        // Delay to allow click on suggestion.
+                        setTimeout(() => setIsFocused(false), 150);
+                    }}
+                    onKeyDown={handleKeyDown}
+                    style={{ width: '100%' }}
+                />
+                {isFocused && (suggestions.length > 0 || showCreate) && (
+                    <div
+                        style={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '2px',
+                            maxHeight: '150px',
+                            overflowY: 'auto',
+                            padding: '4px',
+                            backgroundColor: 'var(--background-secondary)',
+                            borderRadius: '4px',
+                            marginTop: '2px',
+                        }}
+                    >
+                        {suggestions.map((name) => (
+                            <div
+                                key={name}
+                                onMouseDown={() => addHashtag(name)}
+                                className="suggestion-item"
+                                style={{
+                                    cursor: 'pointer',
+                                    padding: '4px 8px',
+                                    fontSize: '0.9em',
+                                }}
+                            >
+                                #{name}
+                            </div>
+                        ))}
+                        {showCreate && (
+                            <div
+                                onMouseDown={() => addHashtag(query.trim())}
+                                className="suggestion-item"
+                                style={{
+                                    cursor: 'pointer',
+                                    padding: '4px 8px',
+                                    fontSize: '0.9em',
+                                    fontStyle: 'italic',
+                                }}
+                            >
+                                Create &laquo;{query.trim()}&raquo;
+                            </div>
+                        )}
+                    </div>
+                )}
+            </div>
+            <div
+                style={{
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    gap: '4px',
+                }}
+            >
+                {hashtags.map((ht) => (
+                    <span
+                        key={ht}
+                        style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            backgroundColor: 'var(--background-modifier-hover)',
+                            padding: '2px 8px',
+                            borderRadius: '12px',
+                            fontSize: '0.85em',
+                        }}
+                    >
+                        #{ht}
+                        <button
+                            onClick={() => removeHashtag(ht)}
+                            style={{
+                                background: 'none',
+                                border: 'none',
+                                color: 'var(--text-muted)',
+                                cursor: 'pointer',
+                                padding: '0 2px',
+                                fontSize: '1.1em',
+                                lineHeight: '1',
+                            }}
+                            aria-label={`Remove hashtag ${ht}`}
+                        >
+                            &times;
+                        </button>
+                    </span>
+                ))}
+            </div>
+        </div>
+    );
+};
+
+export const ReactView = ({
+    file,
+    tags,
+    setTags,
+    hashtags,
+    setHashtags,
+    allHashtagNames,
+}: TaggerState) => {
     const app = useContext(AppContext);
 
     const [coords, setCoords] = useState<PhotoCoords | null>(null);
@@ -393,6 +563,12 @@ export const ReactView = ({ file, tags, setTags }: TaggerState) => {
                             </div>
                         ))}
                     </div>
+                    <hr />
+                    <HashtagInput
+                        hashtags={hashtags}
+                        setHashtags={setHashtags}
+                        allHashtagNames={allHashtagNames}
+                    />
                 </div>
             </div>
         </div>
@@ -401,7 +577,14 @@ export const ReactView = ({ file, tags, setTags }: TaggerState) => {
 
 export class TaggerView extends ItemView {
     root: Root | null = null;
-    taggerState: TaggerState = { file: null, tags: [], setTags: () => {} };
+    taggerState: TaggerState = {
+        file: null,
+        tags: [],
+        setTags: () => {},
+        hashtags: [],
+        setHashtags: () => {},
+        allHashtagNames: [],
+    };
 
     constructor(leaf: WorkspaceLeaf) {
         super(leaf);
@@ -441,6 +624,16 @@ export class TaggerView extends ItemView {
                         state.setTags(tags);
                     }
                 },
+                hashtags: state.hashtags || [],
+                setHashtags: (hashtags: string[]) => {
+                    this.taggerState.hashtags = hashtags;
+                    this.renderView();
+
+                    if (state.setHashtags) {
+                        state.setHashtags(hashtags);
+                    }
+                },
+                allHashtagNames: state.allHashtagNames || [],
             };
             this.renderView();
         }
@@ -459,6 +652,9 @@ export class TaggerView extends ItemView {
                         file={this.taggerState.file}
                         tags={this.taggerState.tags}
                         setTags={this.taggerState.setTags}
+                        hashtags={this.taggerState.hashtags}
+                        setHashtags={this.taggerState.setHashtags}
+                        allHashtagNames={this.taggerState.allHashtagNames}
                     />
                 </StrictMode>
             </AppContext.Provider>,

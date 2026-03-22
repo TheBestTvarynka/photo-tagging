@@ -1,6 +1,6 @@
 # Photo tagging
 
-Obsidian plugin for tagging people on photos.
+Obsidian plugin for tagging people on photos
 
 - [Motivation](#motivation)
 - [Installation](#installation)
