@@ -364,7 +364,6 @@ export const ReactView = ({
                 width: '100%',
                 height: '100%',
                 gridTemplateColumns: '80% 20%',
-                overflow: 'hidden',
             }}
         >
             <div style={{ position: 'relative' }}>
