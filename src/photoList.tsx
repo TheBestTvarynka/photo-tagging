@@ -6,7 +6,7 @@ import PhotoSwipeLightbox from 'photoswipe/lightbox';
 import 'photoswipe/style.css';
 import 'photoswipe/dist/photoswipe.css';
 
-import { Tag } from './tagger';
+import { ImagePath, Tag } from './tagger';
 
 type Photo = {
     // Image path for embedding.
@@ -89,14 +89,21 @@ interface PhotoListProps {
     app: App;
     ctx: MarkdownPostProcessorContext;
     tags: Map<string, Tag[]>;
-    hashTags: Map<string, string[]>;
+    hashTags: Map<string, ImagePath[]>;
     source: string;
 }
 
 const PhotoList = ({ app, ctx, tags, hashTags, source }: PhotoListProps) => {
-    const groupByHashtags = source
-        .split('\n')
-        .some((line) => line.trim().toLowerCase() === 'group: hashtags');
+    const options = source.split('\n');
+    const groupByHashtags = options.some((line) => line.trim().toLowerCase() === 'group: hashtags');
+    let isHashtagType = options.some((line) => line.trim().toLowerCase() === 'type: hashtag');
+
+    if (groupByHashtags && isHashtagType) {
+        console.warn(
+            'Both group by hashtags and hashtag type are specified. Disabling hashtag type.',
+        );
+        isHashtagType = false;
+    }
 
     const [allPhotos, setAllPhotos] = useState<Photo[]>([]);
 
@@ -109,20 +116,42 @@ const PhotoList = ({ app, ctx, tags, hashTags, source }: PhotoListProps) => {
         }
 
         const foundPhotos: Photo[] = [];
-        for (const [imagePath, fileTags] of tags.entries()) {
-            const tag = fileTags.find((tag) => tag.filePath === currentFile.path);
-            if (tag) {
-                const image = app.vault.getAbstractFileByPath(imagePath);
+
+        if (isHashtagType) {
+            const hashtagPhotos = hashTags.get(currentFile.basename);
+            if (!hashtagPhotos) {
+                return;
+            }
+
+            for (const { path, imageWidth, imageHeight } of hashtagPhotos) {
+                const image = app.vault.getAbstractFileByPath(path);
                 if (!(image instanceof TFile)) {
                     continue;
                 }
 
                 foundPhotos.push({
                     resourcePath: app.vault.getResourcePath(image),
-                    path: imagePath,
-                    width: tag.imageWidth,
-                    height: tag.imageHeight,
+                    path,
+                    width: imageWidth,
+                    height: imageHeight,
                 });
+            }
+        } else {
+            for (const [imagePath, fileTags] of tags.entries()) {
+                const tag = fileTags.find((tag) => tag.filePath === currentFile.path);
+                if (tag) {
+                    const image = app.vault.getAbstractFileByPath(imagePath);
+                    if (!(image instanceof TFile)) {
+                        continue;
+                    }
+
+                    foundPhotos.push({
+                        resourcePath: app.vault.getResourcePath(image),
+                        path: imagePath,
+                        width: tag.imageWidth,
+                        height: tag.imageHeight,
+                    });
+                }
             }
         }
 
@@ -130,21 +159,23 @@ const PhotoList = ({ app, ctx, tags, hashTags, source }: PhotoListProps) => {
     }, [app, ctx.sourcePath, tags]);
 
     // Build a set of image paths this person appears in for quick lookup.
-    const personImagePaths = useMemo(() => new Set(allPhotos.map((p) => p.path)), [allPhotos]);
+    const allImagePaths = useMemo(() => new Set(allPhotos.map((p) => p.path)), [allPhotos]);
 
     // Group photos by hashtag. Each group contains only photos that belong to
     // the current person AND belong to that hashtag.
     const groupedPhotos = useMemo(() => {
-        if (!groupByHashtags) return [];
+        if (!groupByHashtags) {
+            return [];
+        }
 
         const groups: { name: string; photos: Photo[] }[] = [];
         const taggedPaths = new Set<string>();
 
         for (const [hashtagName, imagePaths] of hashTags.entries()) {
             const matching = imagePaths
-                .filter((path) => personImagePaths.has(path))
-                .map((path) => allPhotos.find((photo) => photo.path === path))
-                .filter((path): path is Photo => path !== undefined);
+                .filter((imagePath) => allImagePaths.has(imagePath.path))
+                .map((imagePath) => allPhotos.find((photo) => photo.path === imagePath.path))
+                .filter((photo): photo is Photo => photo !== undefined);
 
             if (matching.length > 0) {
                 groups.push({ name: hashtagName, photos: matching });
@@ -161,7 +192,7 @@ const PhotoList = ({ app, ctx, tags, hashTags, source }: PhotoListProps) => {
         }
 
         return groups;
-    }, [groupByHashtags, hashTags, personImagePaths, allPhotos]);
+    }, [groupByHashtags, hashTags, allImagePaths, allPhotos]);
 
     const baseGalleryId = 'taggedphotosgallery' + ctx.docId;
 
@@ -190,7 +221,7 @@ export const mountPhotoList = (
     app: App,
     ctx: MarkdownPostProcessorContext,
     tags: Map<string, Tag[]>,
-    hashTags: Map<string, string[]>,
+    hashTags: Map<string, ImagePath[]>,
     source: string,
 ) => {
     const root = createRoot(el);

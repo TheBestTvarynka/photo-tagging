@@ -1,17 +1,17 @@
 import { Plugin, Menu, MenuItem, TAbstractFile } from 'obsidian';
 
-import { Tag, TaggerView, VIEW_TYPE } from './tagger';
+import { ImagePath, Tag, TaggerView, VIEW_TYPE } from './tagger';
 import { DEFAULT_SETTINGS, PhotoTaggingSettings, PhotoRaggingSettingTab } from './settings';
 import { mountPhotoList } from './photoList';
 
 // Key is file path, value is list of tags.
 type TagsDb = Map<string, Tag[]>;
 // Key is the hashtag name and value is list of image paths.
-type HashTagsDb = Map<string, string[]>;
+type HashTagsDb = Map<string, ImagePath[]>;
 
 type SerializedDb = {
     tags: Record<string, Tag[]>;
-    hashTags: Record<string, string[]>;
+    hashTags: Record<string, ImagePath[]>;
 };
 
 export default class PhotoTagging extends Plugin {
@@ -77,18 +77,18 @@ export default class PhotoTagging extends Plugin {
         // Collect hashtags currently attached to this image.
         const hashtags: string[] = [];
         for (const [name, paths] of this.hashTags.entries()) {
-            if (paths.includes(file.path)) {
+            if (paths.some((imagePath) => imagePath.path === file.path)) {
                 hashtags.push(name);
             }
         }
 
-        const setHashtags = (newHashtags: string[]) => {
+        const setHashtags = (newHashtags: string[], imageWidth: number, imageHeight: number) => {
             // Yes, at this point it would be easier to use SQLite, but I think
             // the project is not big enough to use it (at least yet).
 
             // Remove this image from all hashtags it was previously in.
             for (const [name, paths] of this.hashTags.entries()) {
-                const filtered = paths.filter((path) => path !== file.path);
+                const filtered = paths.filter((imagePath) => imagePath.path !== file.path);
 
                 this.hashTags.set(name, filtered);
             }
@@ -96,8 +96,8 @@ export default class PhotoTagging extends Plugin {
             // Add this image to each of the new hashtags.
             for (const hashtag of newHashtags) {
                 const existing = this.hashTags.get(hashtag) || [];
-                if (!existing.includes(file.path)) {
-                    existing.push(file.path);
+                if (!existing.some((imagePath) => imagePath.path === file.path)) {
+                    existing.push({ path: file.path, imageWidth, imageHeight });
 
                     this.hashTags.set(hashtag, existing);
                 }
@@ -145,9 +145,9 @@ export default class PhotoTagging extends Plugin {
         }
 
         for (const [, paths] of this.hashTags.entries()) {
-            const index = paths.indexOf(oldPath);
-            if (index !== -1) {
-                paths[index] = newPath;
+            const imagePath = paths.find((p) => p.path === oldPath);
+            if (imagePath) {
+                imagePath.path = newPath;
                 changed = true;
             }
         }
@@ -176,7 +176,7 @@ export default class PhotoTagging extends Plugin {
         }
 
         for (const [hashtagName, paths] of this.hashTags.entries()) {
-            const filtered = paths.filter((p) => p !== path);
+            const filtered = paths.filter((p) => p.path !== path);
             if (filtered.length !== paths.length) {
                 this.hashTags.set(hashtagName, filtered);
                 changed = true;
