@@ -19,7 +19,7 @@ interface TaggerState {
     tags: Tag[];
     setTags: (tags: Tag[]) => void;
     hashtags: string[];
-    setHashtags: (hashtags: string[]) => void;
+    setHashtags: (hashtags: string[], imageWidth: number, imageHeight: number) => void;
     allHashtagNames: string[];
 }
 
@@ -40,6 +40,12 @@ export type Tag = {
     coords: PhotoCoords;
     person: string;
     filePath: string;
+    imageWidth: number;
+    imageHeight: number;
+};
+
+export type ImagePath = {
+    path: string;
     imageWidth: number;
     imageHeight: number;
 };
@@ -565,7 +571,9 @@ export const ReactView = ({
                     <hr />
                     <HashtagInput
                         hashtags={hashtags}
-                        setHashtags={setHashtags}
+                        setHashtags={(newHashtags) =>
+                            setHashtags(newHashtags, imgSize.naturalWidth, imgSize.naturalHeight)
+                        }
                         allHashtagNames={allHashtagNames}
                     />
                 </div>
@@ -619,12 +627,12 @@ export class TaggerView extends ItemView {
                     }
                 },
                 hashtags: state.hashtags || [],
-                setHashtags: (hashtags: string[]) => {
+                setHashtags: (hashtags: string[], imageWidth: number, imageHeight: number) => {
                     this.taggerState.hashtags = hashtags;
                     this.renderView();
 
                     if (state.setHashtags) {
-                        state.setHashtags(hashtags);
+                        state.setHashtags(hashtags, imageWidth, imageHeight);
                     }
                 },
                 allHashtagNames: state.allHashtagNames || [],
