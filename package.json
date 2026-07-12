@@ -1,6 +1,6 @@
 {
 	"name": "photo-tagging",
-	"version": "0.2.2",
+	"version": "0.2.3",
 	"description": "Obsidian plugin for tagging people on photos and rendering interactive galleries",
 	"main": "main.js",
 	"type": "module",
