@@ -50,6 +50,18 @@ export default class PhotoTagging extends Plugin {
             }),
         );
 
+        this.registerEvent(
+            this.app.vault.on('rename', (file, oldPath) => {
+                this.handleFileRename(file.path, oldPath);
+            }),
+        );
+
+        this.registerEvent(
+            this.app.vault.on('delete', (file) => {
+                this.handleFileDelete(file.path);
+            }),
+        );
+
         this.registerMarkdownCodeBlockProcessor('tagged-photos', (source, el, ctx) => {
             mountPhotoList(el, this.app, ctx, this.tags, this.hashTags, source);
         });
@@ -117,6 +129,71 @@ export default class PhotoTagging extends Plugin {
             hashTags: Object.fromEntries(this.hashTags),
         };
         await this.app.vault.adapter.write(this.settings.databaseFile, JSON.stringify(db));
+    }
+
+    // A renamed/moved file may be a tagged image (key in `tags`, referenced in
+    // `hashTags`) or a person note (`filePath` inside some tag). Update every
+    // place that references the old path so the db never points at a dead path.
+    handleFileRename(newPath: string, oldPath: string) {
+        let changed = false;
+
+        if (this.tags.has(oldPath)) {
+            const tags = this.tags.get(oldPath)!;
+            this.tags.delete(oldPath);
+            this.tags.set(newPath, tags);
+            changed = true;
+        }
+
+        for (const [, paths] of this.hashTags.entries()) {
+            const index = paths.indexOf(oldPath);
+            if (index !== -1) {
+                paths[index] = newPath;
+                changed = true;
+            }
+        }
+
+        for (const tags of this.tags.values()) {
+            for (const tag of tags) {
+                if (tag.filePath === oldPath) {
+                    tag.filePath = newPath;
+                    changed = true;
+                }
+            }
+        }
+
+        if (changed) {
+            this.saveDb().catch((err) => console.error(err));
+        }
+    }
+
+    handleFileDelete(path: string) {
+        // A deleted file may be a tagged image or a person note (see `.handleFileRename`).
+        // Since the path no longer exists, drop every reference to it.
+        let changed = false;
+
+        if (this.tags.delete(path)) {
+            changed = true;
+        }
+
+        for (const [hashtagName, paths] of this.hashTags.entries()) {
+            const filtered = paths.filter((p) => p !== path);
+            if (filtered.length !== paths.length) {
+                this.hashTags.set(hashtagName, filtered);
+                changed = true;
+            }
+        }
+
+        for (const [imagePath, tags] of this.tags.entries()) {
+            const filtered = tags.filter((tag) => tag.filePath !== path);
+            if (filtered.length !== tags.length) {
+                this.tags.set(imagePath, filtered);
+                changed = true;
+            }
+        }
+
+        if (changed) {
+            this.saveDb().catch((err) => console.error(err));
+        }
     }
 
     onunload() {}
