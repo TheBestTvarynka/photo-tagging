@@ -605,12 +605,7 @@ export class TaggerView extends ItemView {
         this.root?.unmount();
     }
 
-    // Fuck TS.
-    /* eslint-disable  @typescript-eslint/no-explicit-any */
-    /* eslint-disable  @typescript-eslint/no-unsafe-member-access */
-    /* eslint-disable  @typescript-eslint/no-unsafe-assignment */
-    /* eslint-disable  @typescript-eslint/no-unsafe-call */
-    async setState(state: any, result: ViewStateResult): Promise<void> {
+    async setState(state: TaggerState, result: ViewStateResult): Promise<void> {
         if (state) {
             this.taggerState = {
                 file: state.file || null,
@@ -634,8 +629,10 @@ export class TaggerView extends ItemView {
                 },
                 allHashtagNames: state.allHashtagNames || [],
             };
+
             this.renderView();
         }
+
         await super.setState(state, result);
     }
 
