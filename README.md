@@ -15,19 +15,29 @@ I did not find the existing plugin, so I decided to write my own.
 
 ## Installation
 
+### Obsidian Community Plugins
+
 > [!NOTE]
-> The plugin has not been submitted to the [official list of plugins](https://github.com/obsidianmd/obsidian-releases/blob/master/community-plugins.json) because it is used only by me, and I wrote it especially for my own needs.
+> The plugin has not been submitted to the [Obsidian Community Plugins](https://obsidian.md/help/community-plugins) because it is used only by me, and I wrote it especially for my own needs.
 > If you find this plugin useful and want it to be in the official plugins list, please create an issue, and I will do it.
 
-You can try this plugin by cloning the repo and enabling it in the Obsidian vault settings.
+### Manual installation
 
-1. Clone the repo into the `plugins/` directory:
-   ```bash
-   mkdir -p {vault}/.obsidian/plugins/
-   cd {vault}/.obsidian/plugins/
-   git clone https://github.com/TheBestTvarynka/photo-tagging.git
-   ```
-2. Enable the Photo-tagging plugin in Obsidian settings (`Community Plugins` section).
+You can install the plugin by downloading the release assets, placing them inside your Obsidian vault, and enabling it in the settings:
+
+1. Go to the [TheBestTvarynka/photo-tagging/releases](https://github.com/TheBestTvarynka/photo-tagging/releases) page and download release assets: `main.js`, `manifest.json`, and `styles.css`.
+2. Place these files in the vault plugin directory:
+
+```bash
+VAULT_DIR=/path/to/vault
+PHOTO_TAGGING_DIR=${VAULT_DIR}/.obsidian/plugins/photo-tagging
+mkdir -p ${PHOTO_TAGGING_DIR}
+cp main.js ${PHOTO_TAGGING_DIR}
+cp styles.css ${PHOTO_TAGGING_DIR}
+cp manifest.json ${PHOTO_TAGGING_DIR}
+```
+
+3. Enable the Grafily plugin in the Obsidian settings (`Community Plugins` section).
 
 ## Manual
 

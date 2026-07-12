@@ -2,8 +2,8 @@
     "id": "photo-tagging",
     "name": "Photo-tagging",
     "version": "0.2.0",
-    "minAppVersion": "0.15.0",
-    "description": "Obsidian plugin for tagging people on photos",
+    "minAppVersion": "1.8.7",
+    "description": "Plugin for tagging people on photos and rendering interactive galleries.",
     "author": "TheBestTvarynka",
     "authorUrl": "https://tbt.qkation.com/about/",
     "isDesktopOnly": true
