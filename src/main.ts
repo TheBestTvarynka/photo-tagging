@@ -3,16 +3,12 @@ import { Plugin, Menu, MenuItem, TAbstractFile } from 'obsidian';
 import { ImagePath, Tag, TaggerView, VIEW_TYPE } from './tagger';
 import { DEFAULT_SETTINGS, PhotoTaggingSettings, PhotoRaggingSettingTab } from './settings';
 import { mountPhotoList } from './photoList';
+import { CURRENT_DB_VERSION, migrateDb, SerializedDb } from './migrations';
 
 // Key is file path, value is list of tags.
 type TagsDb = Map<string, Tag[]>;
 // Key is the hashtag name and value is list of image paths.
 type HashTagsDb = Map<string, ImagePath[]>;
-
-type SerializedDb = {
-    tags: Record<string, Tag[]>;
-    hashTags: Record<string, ImagePath[]>;
-};
 
 export default class PhotoTagging extends Plugin {
     settings: PhotoTaggingSettings;
@@ -24,16 +20,27 @@ export default class PhotoTagging extends Plugin {
 
         try {
             if (!(await this.app.vault.adapter.exists(this.settings.databaseFile))) {
+                const emptyDb: SerializedDb = {
+                    version: CURRENT_DB_VERSION,
+                    tags: {},
+                    hashTags: {},
+                };
                 await this.app.vault.adapter.write(
                     this.settings.databaseFile,
-                    JSON.stringify({ tags: {}, hashTags: {} }),
+                    JSON.stringify(emptyDb),
                 );
             }
 
             const data = await this.app.vault.adapter.read(this.settings.databaseFile);
-            const parsed = JSON.parse(data) as Partial<SerializedDb>;
-            this.tags = new Map(Object.entries(parsed.tags ?? {}));
-            this.hashTags = new Map(Object.entries(parsed.hashTags ?? {}));
+            const parsed = JSON.parse(data) as unknown;
+            const [db, wasMigrated] = await migrateDb(this.app, parsed);
+
+            this.tags = new Map(Object.entries(db.tags ?? {}));
+            this.hashTags = new Map(Object.entries(db.hashTags ?? {}));
+
+            if (wasMigrated) {
+                await this.saveDb();
+            }
         } catch (error) {
             console.error('Error loading db:', error);
             this.tags = new Map();
@@ -125,6 +132,7 @@ export default class PhotoTagging extends Plugin {
 
     async saveDb() {
         const db: SerializedDb = {
+            version: CURRENT_DB_VERSION,
             tags: Object.fromEntries(this.tags),
             hashTags: Object.fromEntries(this.hashTags),
         };
