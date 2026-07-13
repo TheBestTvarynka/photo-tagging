@@ -2,10 +2,12 @@
 
 Obsidian plugin for tagging people on photos
 
-- [Motivation](#motivation)
-- [Installation](#installation)
-- [Manual](#manual)
-- [BDFL](#bdfl)
+  - [Motivation](#motivation)
+  - [Installation](#installation)
+    - [Obsidian Community Plugins](#obsidian-community-plugins)
+    - [Manual installation](#manual-installation)
+  - [Manual](#manual)
+  - [BDFL](#bdfl)
 
 ## Motivation
 
@@ -17,9 +19,7 @@ I did not find the existing plugin, so I decided to write my own.
 
 ### Obsidian Community Plugins
 
-> [!NOTE]
-> The plugin has not been submitted to the [Obsidian Community Plugins](https://obsidian.md/help/community-plugins) because it is used only by me, and I wrote it especially for my own needs.
-> If you find this plugin useful and want it to be in the official plugins list, please create an issue, and I will do it.
+The photo-tagging plugin is available in the [Obsidian Community Plugins](https://obsidian.md/help/community-plugins) list. So, you can install it right from the Obsidian app. Here is a direct link to the plugin page: https://community.obsidian.md/plugins/photo-tagging.
 
 ### Manual installation
 
