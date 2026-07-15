@@ -17,6 +17,14 @@ I did not find the existing plugin, so I decided to write my own.
 
 ## Installation
 
+> [!IMPORTANT]  
+> You must have [`libvips`](https://github.com/libvips/libvips) installed. See installation instructions: https://www.libvips.org/install.html.
+
+`libvips` is used to generate image tiles (image pyramids). The `photo-tagging` plugin uses it to handle large images.
+
+When the user opens the image in the tagger for the first time, the plugin automatically generates image tiles and a preview image.
+The plugin will use them to display and zoom large images effectively.
+
 ### Obsidian Community Plugins
 
 The photo-tagging plugin is available in the [Obsidian Community Plugins](https://obsidian.md/help/community-plugins) list. So, you can install it right from the Obsidian app. Here is a direct link to the plugin page: https://community.obsidian.md/plugins/photo-tagging.
