@@ -4,7 +4,7 @@ import { ImagePath, Tag, TaggerView, VIEW_TYPE } from './tagger';
 import { DEFAULT_SETTINGS, PhotoTaggingSettings, PhotoRaggingSettingTab } from './settings';
 import { mountPhotoList } from './photoList';
 import { CURRENT_DB_VERSION, migrateDb, SerializedDb } from './migrations';
-import { ensureImageTiles } from './tiling';
+import { deleteImageTiles, ensureImageTiles, moveImageTiles } from './tiling';
 
 // Key is file path, value is list of tags.
 type TagsDb = Map<string, Tag[]>;
@@ -210,6 +210,10 @@ export default class PhotoTagging extends Plugin {
     // `hashTags`) or a person note (`filePath` inside some tag). Update every
     // place that references the old path so the db never points at a dead path.
     handleFileRename(newPath: string, oldPath: string) {
+        moveImageTiles(this.app, this.manifest, oldPath, newPath).catch((err) =>
+            console.error('Error moving deep-zoom tiles:', err),
+        );
+
         let changed = false;
 
         if (this.tags.has(oldPath)) {
@@ -242,6 +246,10 @@ export default class PhotoTagging extends Plugin {
     }
 
     handleFileDelete(path: string) {
+        deleteImageTiles(this.app, this.manifest, path).catch((err) =>
+            console.error('Error deleting deep-zoom tiles:', err),
+        );
+
         // A deleted file may be a tagged image or a person note (see `.handleFileRename`).
         // Since the path no longer exists, drop every reference to it.
         let changed = false;

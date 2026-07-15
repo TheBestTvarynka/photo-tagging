@@ -133,3 +133,54 @@ export async function readImageTiles(
         return null;
     }
 }
+
+// Removes `imagePath`'s tile directory, if any. Called when the image itself
+// is deleted from the vault.
+export async function deleteImageTiles(
+    app: App,
+    manifest: PluginManifest,
+    imagePath: string,
+): Promise<void> {
+    const adapter = app.vault.adapter;
+    if (!(adapter instanceof FileSystemAdapter)) {
+        return;
+    }
+
+    const tileDirVaultPath = getTileDirVaultPath(app, manifest, imagePath);
+    if (await adapter.exists(tileDirVaultPath)) {
+        await adapter.rmdir(tileDirVaultPath, true);
+    }
+}
+
+// Moves `oldImagePath`'s tile directory to `newImagePath`, if any. Called
+// when the image itself is renamed/moved within the vault.
+export async function moveImageTiles(
+    app: App,
+    manifest: PluginManifest,
+    oldImagePath: string,
+    newImagePath: string,
+): Promise<void> {
+    const adapter = app.vault.adapter;
+    if (!(adapter instanceof FileSystemAdapter)) {
+        return;
+    }
+
+    const oldTileDirVaultPath = getTileDirVaultPath(app, manifest, oldImagePath);
+    if (!(await adapter.exists(oldTileDirVaultPath))) {
+        return;
+    }
+
+    const newTileDirVaultPath = getTileDirVaultPath(app, manifest, newImagePath);
+
+    // Clear out any stale tiles already sitting at the destination (e.g. from
+    // a previously deleted/replaced image at that path).
+    if (await adapter.exists(newTileDirVaultPath)) {
+        await adapter.rmdir(newTileDirVaultPath, true);
+    }
+
+    const newTileDirAbsPath = adapter.getFullPath(newTileDirVaultPath);
+    const newParentAbsPath = newTileDirAbsPath.slice(0, newTileDirAbsPath.lastIndexOf('/'));
+    await fs.mkdir(newParentAbsPath, { recursive: true });
+
+    await adapter.rename(oldTileDirVaultPath, newTileDirVaultPath);
+}

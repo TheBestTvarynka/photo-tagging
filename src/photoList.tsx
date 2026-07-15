@@ -128,11 +128,7 @@ const PhotoGallery = ({
                         rel="noreferrer"
                         {...deepZoomProps}
                     >
-                        <img
-                            src={href}
-                            alt=""
-                            onContextMenu={handleImageContextMenu}
-                        />
+                        <img src={href} alt="" onContextMenu={handleImageContextMenu} />
                     </a>
                 );
             })}
