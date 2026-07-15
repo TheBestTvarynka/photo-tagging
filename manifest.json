@@ -1,7 +1,7 @@
 {
     "id": "photo-tagging",
     "name": "Photo-tagging",
-    "version": "0.2.3",
+    "version": "0.3.0",
     "minAppVersion": "1.8.7",
     "description": "Plugin for tagging people on photos and rendering interactive galleries.",
     "author": "TheBestTvarynka",
