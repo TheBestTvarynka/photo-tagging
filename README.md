@@ -19,6 +19,8 @@ I did not find the existing plugin, so I decided to write my own.
 
 > [!IMPORTANT]  
 > You must have [`libvips`](https://github.com/libvips/libvips) installed. See installation instructions: https://www.libvips.org/install.html.
+>
+> Nope, you cannot disable it.
 
 `libvips` is used to generate image tiles (image pyramids). The `photo-tagging` plugin uses it to handle large images.
 
