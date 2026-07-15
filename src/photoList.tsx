@@ -1,12 +1,21 @@
-import { App, MarkdownPostProcessorContext, Menu, TFile } from 'obsidian';
+import {
+    App,
+    FileSystemAdapter,
+    MarkdownPostProcessorContext,
+    Menu,
+    PluginManifest,
+    TFile,
+} from 'obsidian';
 import { MouseEventHandler, StrictMode, useEffect, useMemo, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 
 import PhotoSwipeLightbox from 'photoswipe/lightbox';
 import 'photoswipe/style.css';
 import 'photoswipe/dist/photoswipe.css';
+import PhotoSwipeDeepZoom from 'photoswipe-deep-zoom-plugin';
 
 import { ImagePath, Tag } from './tagger';
+import { ImageTiles, readImageTiles, TILE_SIZE } from './tiling';
 
 type Photo = {
     // Image path for embedding.
@@ -19,7 +28,24 @@ type Photo = {
     width: number;
     // Original image height.
     height: number;
+    // Deep-zoom tile pyramid, if this image has been tiled already (see `tiling.ts`).
+    tiles: ImageTiles | null;
 };
+
+// Resolves an individual deepzoom tile file to a URL the browser can load,
+// given the `<a>` element's `data-tile-files-dir` (see `PhotoGallery` below).
+// A custom function is required instead of `data-pswp-tile-url` templating
+// because Obsidian's resource URLs percent-encode the `{x}`/`{y}`/`{z}`
+// placeholders the plugin would otherwise substitute into the template string.
+const getTileUrlFn =
+    (adapter: FileSystemAdapter) =>
+    (data: { element?: HTMLElement }, x: number, y: number, z: number) => {
+        const tileFilesDir = data.element?.dataset.tileFilesDir;
+        if (!tileFilesDir) {
+            return '';
+        }
+        return adapter.getResourcePath(`${tileFilesDir}/${z}/${x}_${y}.jpg`);
+    };
 
 const PhotoGallery = ({
     app,
@@ -38,6 +64,14 @@ const PhotoGallery = ({
             children: 'a',
             pswpModule: () => import('photoswipe'),
         });
+
+        if (app.vault.adapter instanceof FileSystemAdapter) {
+            new PhotoSwipeDeepZoom(lightbox, {
+                tileSize: TILE_SIZE,
+                getTileUrlFn: getTileUrlFn(app.vault.adapter),
+            });
+        }
+
         lightbox.init();
 
         return () => {
@@ -46,7 +80,7 @@ const PhotoGallery = ({
             }
             lightbox = null;
         };
-    }, [galleryId]);
+    }, [galleryId, app]);
 
     return (
         <div className="pswp-gallery" id={galleryId} ref={galleryRef}>
@@ -64,20 +98,37 @@ const PhotoGallery = ({
                     }
                 };
 
+                const { tiles } = image;
+                const adapter = app.vault.adapter;
+                const deepZoomProps =
+                    tiles && adapter instanceof FileSystemAdapter
+                        ? {
+                              'data-pswp-tile-url': 'tiled', // required to be truthy; actual URLs come from getTileUrlFn
+                              'data-pswp-tile-type': 'deepzoom',
+                              'data-pswp-max-width': image.width,
+                              'data-pswp-max-height': image.height,
+                              'data-tile-files-dir': tiles.tileFilesVaultPath,
+                          }
+                        : {};
+
+                const href =
+                    tiles && adapter instanceof FileSystemAdapter
+                        ? adapter.getResourcePath(tiles.previewVaultPath)
+                        : image.resourcePath;
+                const width = tiles ? tiles.previewWidth : image.width;
+                const height = tiles ? tiles.previewHeight : image.height;
+
                 return (
                     <a
-                        href={image.resourcePath}
-                        data-pswp-width={image.width}
-                        data-pswp-height={image.height}
+                        href={href}
+                        data-pswp-width={width}
+                        data-pswp-height={height}
                         key={galleryId + '-' + index}
                         target="_blank"
                         rel="noreferrer"
+                        {...deepZoomProps}
                     >
-                        <img
-                            src={image.resourcePath}
-                            alt=""
-                            onContextMenu={handleImageContextMenu}
-                        />
+                        <img src={href} alt="" onContextMenu={handleImageContextMenu} />
                     </a>
                 );
             })}
@@ -87,13 +138,14 @@ const PhotoGallery = ({
 
 interface PhotoListProps {
     app: App;
+    manifest: PluginManifest;
     ctx: MarkdownPostProcessorContext;
     tags: Map<string, Tag[]>;
     hashTags: Map<string, ImagePath[]>;
     source: string;
 }
 
-const PhotoList = ({ app, ctx, tags, hashTags, source }: PhotoListProps) => {
+const PhotoList = ({ app, manifest, ctx, tags, hashTags, source }: PhotoListProps) => {
     const options = source.split('\n');
     const groupByHashtags = options.some((line) => line.trim().toLowerCase() === 'group: hashtags');
     let isHashtagType = options.some((line) => line.trim().toLowerCase() === 'type: hashtag');
@@ -109,54 +161,65 @@ const PhotoList = ({ app, ctx, tags, hashTags, source }: PhotoListProps) => {
 
     // Build the flat list of all photos where the current person is tagged.
     useEffect(() => {
-        const currentFile = app.vault.getAbstractFileByPath(ctx.sourcePath);
+        let cancelled = false;
 
+        const currentFile = app.vault.getAbstractFileByPath(ctx.sourcePath);
         if (!(currentFile instanceof TFile)) {
             return;
         }
 
-        const foundPhotos: Photo[] = [];
-
-        if (isHashtagType) {
-            const hashtagPhotos = hashTags.get(currentFile.basename);
-            if (!hashtagPhotos) {
-                return;
+        const buildPhoto = async (
+            path: string,
+            imageWidth: number,
+            imageHeight: number,
+        ): Promise<Photo | null> => {
+            const image = app.vault.getAbstractFileByPath(path);
+            if (!(image instanceof TFile)) {
+                return null;
             }
 
-            for (const { path, imageWidth, imageHeight } of hashtagPhotos) {
-                const image = app.vault.getAbstractFileByPath(path);
-                if (!(image instanceof TFile)) {
-                    continue;
-                }
+            const tiles = await readImageTiles(app, manifest, path);
 
-                foundPhotos.push({
-                    resourcePath: app.vault.getResourcePath(image),
-                    path,
-                    width: imageWidth,
-                    height: imageHeight,
-                });
-            }
-        } else {
-            for (const [imagePath, fileTags] of tags.entries()) {
-                const tag = fileTags.find((tag) => tag.filePath === currentFile.path);
-                if (tag) {
-                    const image = app.vault.getAbstractFileByPath(imagePath);
-                    if (!(image instanceof TFile)) {
-                        continue;
+            return {
+                resourcePath: app.vault.getResourcePath(image),
+                path,
+                width: imageWidth,
+                height: imageHeight,
+                tiles,
+            };
+        };
+
+        void (async () => {
+            let photoPromises: Promise<Photo | null>[];
+
+            if (isHashtagType) {
+                const hashtagPhotos = hashTags.get(currentFile.basename) ?? [];
+                photoPromises = hashtagPhotos.map(({ path, imageWidth, imageHeight }) =>
+                    buildPhoto(path, imageWidth, imageHeight),
+                );
+            } else {
+                photoPromises = [];
+                for (const [imagePath, fileTags] of tags.entries()) {
+                    const tag = fileTags.find((tag) => tag.filePath === currentFile.path);
+                    if (tag) {
+                        photoPromises.push(buildPhoto(imagePath, tag.imageWidth, tag.imageHeight));
                     }
-
-                    foundPhotos.push({
-                        resourcePath: app.vault.getResourcePath(image),
-                        path: imagePath,
-                        width: tag.imageWidth,
-                        height: tag.imageHeight,
-                    });
                 }
             }
-        }
 
-        setAllPhotos(foundPhotos);
-    }, [app, ctx.sourcePath, tags]);
+            const photos = (await Promise.all(photoPromises)).filter(
+                (photo): photo is Photo => photo !== null,
+            );
+
+            if (!cancelled) {
+                setAllPhotos(photos);
+            }
+        })();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [app, manifest, ctx.sourcePath, tags, hashTags, isHashtagType]);
 
     // Build a set of image paths this person appears in for quick lookup.
     const allImagePaths = useMemo(() => new Set(allPhotos.map((p) => p.path)), [allPhotos]);
@@ -219,6 +282,7 @@ const PhotoList = ({ app, ctx, tags, hashTags, source }: PhotoListProps) => {
 export const mountPhotoList = (
     el: HTMLElement,
     app: App,
+    manifest: PluginManifest,
     ctx: MarkdownPostProcessorContext,
     tags: Map<string, Tag[]>,
     hashTags: Map<string, ImagePath[]>,
@@ -227,7 +291,14 @@ export const mountPhotoList = (
     const root = createRoot(el);
     root.render(
         <StrictMode>
-            <PhotoList app={app} ctx={ctx} tags={tags} hashTags={hashTags} source={source} />
+            <PhotoList
+                app={app}
+                manifest={manifest}
+                ctx={ctx}
+                tags={tags}
+                hashTags={hashTags}
+                source={source}
+            />
         </StrictMode>,
     );
 };

@@ -1,9 +1,10 @@
-import { Plugin, Menu, MenuItem, TAbstractFile } from 'obsidian';
+import { Plugin, Menu, MenuItem, Notice, TAbstractFile, TFile } from 'obsidian';
 
 import { ImagePath, Tag, TaggerView, VIEW_TYPE } from './tagger';
 import { DEFAULT_SETTINGS, PhotoTaggingSettings, PhotoRaggingSettingTab } from './settings';
 import { mountPhotoList } from './photoList';
 import { CURRENT_DB_VERSION, migrateDb, SerializedDb } from './migrations';
+import { deleteImageTiles, ensureImageTiles, moveImageTiles } from './tiling';
 
 // Key is file path, value is list of tags.
 type TagsDb = Map<string, Tag[]>;
@@ -70,11 +71,77 @@ export default class PhotoTagging extends Plugin {
         );
 
         this.registerMarkdownCodeBlockProcessor('tagged-photos', (source, el, ctx) => {
-            mountPhotoList(el, this.app, ctx, this.tags, this.hashTags, source);
+            mountPhotoList(el, this.app, this.manifest, ctx, this.tags, this.hashTags, source);
+        });
+
+        this.addCommand({
+            id: 'generate-deep-zoom-tiles',
+            name: 'Generate deep-zoom tiles for all tagged photos',
+            callback: () => {
+                this.generateAllTiles().catch((err) => console.error(err));
+            },
         });
     }
 
+    // Backfills deep-zoom tiles for every image referenced in the db, for
+    // vaults tagged before deep zoom was introduced. Skips images that
+    // already have tiles (see `ensureImageTiles`).
+    async generateAllTiles() {
+        const imagePaths = new Set<string>();
+        for (const path of this.tags.keys()) {
+            imagePaths.add(path);
+        }
+        for (const paths of this.hashTags.values()) {
+            for (const { path } of paths) {
+                imagePaths.add(path);
+            }
+        }
+
+        const paths = Array.from(imagePaths);
+        if (paths.length === 0) {
+            new Notice('No tagged photos found.');
+            return;
+        }
+
+        const progress = new Notice(`Generating deep-zoom tiles: 0 / ${paths.length}`, 0);
+
+        let done = 0;
+        let failed = 0;
+        let skipped = 0;
+
+        for (const [index, path] of paths.entries()) {
+            const file = this.app.vault.getAbstractFileByPath(path);
+            if (!(file instanceof TFile)) {
+                skipped++;
+            } else {
+                try {
+                    await ensureImageTiles(this.app, this.manifest, path);
+                    done++;
+                } catch (error) {
+                    failed++;
+                    console.error(`Error generating deep-zoom tiles for ${path}:`, error);
+                }
+            }
+
+            progress.setMessage(`Generating deep-zoom tiles: ${index + 1} / ${paths.length}`);
+        }
+
+        progress.hide();
+        new Notice(
+            `Deep-zoom tiling complete: ${done} ready, ${failed} failed, ${skipped} missing files.`,
+        );
+    }
+
     async activateView(file: TAbstractFile) {
+        try {
+            await ensureImageTiles(this.app, this.manifest, file.path);
+        } catch (error) {
+            console.error('Error generating deep-zoom tiles:', error);
+            new Notice(
+                `Failed to generate deep-zoom tiles for ${file.name}. See console for details.`,
+            );
+        }
+
         const tags = this.tags.get(file.path) || [];
         const setTags = (tags: Tag[]) => {
             this.tags.set(file.path, tags);
@@ -143,6 +210,10 @@ export default class PhotoTagging extends Plugin {
     // `hashTags`) or a person note (`filePath` inside some tag). Update every
     // place that references the old path so the db never points at a dead path.
     handleFileRename(newPath: string, oldPath: string) {
+        moveImageTiles(this.app, this.manifest, oldPath, newPath).catch((err) =>
+            console.error('Error moving deep-zoom tiles:', err),
+        );
+
         let changed = false;
 
         if (this.tags.has(oldPath)) {
@@ -175,6 +246,10 @@ export default class PhotoTagging extends Plugin {
     }
 
     handleFileDelete(path: string) {
+        deleteImageTiles(this.app, this.manifest, path).catch((err) =>
+            console.error('Error deleting deep-zoom tiles:', err),
+        );
+
         // A deleted file may be a tagged image or a person note (see `.handleFileRename`).
         // Since the path no longer exists, drop every reference to it.
         let changed = false;
