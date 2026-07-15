@@ -129,7 +129,7 @@ const PhotoGallery = ({
                         {...deepZoomProps}
                     >
                         <img
-                            src={image.resourcePath}
+                            src={href}
                             alt=""
                             onContextMenu={handleImageContextMenu}
                         />
