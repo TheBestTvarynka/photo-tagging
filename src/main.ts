@@ -1,4 +1,4 @@
-import { Plugin, Menu, MenuItem, Notice, TAbstractFile } from 'obsidian';
+import { Plugin, Menu, MenuItem, Notice, TAbstractFile, TFile } from 'obsidian';
 
 import { ImagePath, Tag, TaggerView, VIEW_TYPE } from './tagger';
 import { DEFAULT_SETTINGS, PhotoTaggingSettings, PhotoRaggingSettingTab } from './settings';
@@ -73,6 +73,63 @@ export default class PhotoTagging extends Plugin {
         this.registerMarkdownCodeBlockProcessor('tagged-photos', (source, el, ctx) => {
             mountPhotoList(el, this.app, this.manifest, ctx, this.tags, this.hashTags, source);
         });
+
+        this.addCommand({
+            id: 'generate-deep-zoom-tiles',
+            name: 'Generate deep-zoom tiles for all tagged photos',
+            callback: () => {
+                this.generateAllTiles().catch((err) => console.error(err));
+            },
+        });
+    }
+
+    // Backfills deep-zoom tiles for every image referenced in the db, for
+    // vaults tagged before deep zoom was introduced. Skips images that
+    // already have tiles (see `ensureImageTiles`).
+    async generateAllTiles() {
+        const imagePaths = new Set<string>();
+        for (const path of this.tags.keys()) {
+            imagePaths.add(path);
+        }
+        for (const paths of this.hashTags.values()) {
+            for (const { path } of paths) {
+                imagePaths.add(path);
+            }
+        }
+
+        const paths = Array.from(imagePaths);
+        if (paths.length === 0) {
+            new Notice('No tagged photos found.');
+            return;
+        }
+
+        const progress = new Notice(`Generating deep-zoom tiles: 0 / ${paths.length}`, 0);
+
+        let done = 0;
+        let failed = 0;
+        let skipped = 0;
+
+        for (const [index, path] of paths.entries()) {
+            const file = this.app.vault.getAbstractFileByPath(path);
+            if (!(file instanceof TFile)) {
+                skipped++;
+            } else {
+                try {
+                    await ensureImageTiles(this.app, this.manifest, path);
+                    done++;
+                } catch (error) {
+                    failed++;
+                    console.error(`Error generating deep-zoom tiles for ${path}:`, error);
+                }
+            }
+
+            progress.setMessage(`Generating deep-zoom tiles: ${index + 1} / ${paths.length}`);
+        }
+
+        progress.hide();
+        new Notice(
+            `Deep-zoom tiling complete: ${done} ready, ${failed} failed, ${skipped} missing files.`,
+        );
     }
 
     async activateView(file: TAbstractFile) {
