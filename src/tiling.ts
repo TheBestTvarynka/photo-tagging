@@ -6,7 +6,7 @@ import { promisify } from 'util';
 const execFileAsync = promisify(execFile);
 
 export const TILE_SIZE = 256;
-const PREVIEW_MAX_DIMENSION = 800;
+const PREVIEW_MAX_DIMENSION = 1024;
 
 type TileMeta = {
     previewWidth: number;
