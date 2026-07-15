@@ -57,10 +57,13 @@ export async function migrateDb(app: App, raw: unknown): Promise<[SerializedDb, 
     const parsed = (raw ?? {}) as Partial<SerializedDb> & Partial<SerializedDbV0>;
 
     if (parsed.version === undefined) {
-        return [await migrateV0ToV1(app, {
-            tags: parsed.tags ?? {},
-            hashTags: (parsed.hashTags as Record<string, string[]>) ?? {},
-        }), true];
+        return [
+            await migrateV0ToV1(app, {
+                tags: parsed.tags ?? {},
+                hashTags: (parsed.hashTags as Record<string, string[]>) ?? {},
+            }),
+            true,
+        ];
     }
 
     if (parsed.version !== CURRENT_DB_VERSION) {

@@ -1,9 +1,10 @@
-import { Plugin, Menu, MenuItem, TAbstractFile } from 'obsidian';
+import { Plugin, Menu, MenuItem, Notice, TAbstractFile } from 'obsidian';
 
 import { ImagePath, Tag, TaggerView, VIEW_TYPE } from './tagger';
 import { DEFAULT_SETTINGS, PhotoTaggingSettings, PhotoRaggingSettingTab } from './settings';
 import { mountPhotoList } from './photoList';
 import { CURRENT_DB_VERSION, migrateDb, SerializedDb } from './migrations';
+import { ensureImageTiles } from './tiling';
 
 // Key is file path, value is list of tags.
 type TagsDb = Map<string, Tag[]>;
@@ -70,11 +71,20 @@ export default class PhotoTagging extends Plugin {
         );
 
         this.registerMarkdownCodeBlockProcessor('tagged-photos', (source, el, ctx) => {
-            mountPhotoList(el, this.app, ctx, this.tags, this.hashTags, source);
+            mountPhotoList(el, this.app, this.manifest, ctx, this.tags, this.hashTags, source);
         });
     }
 
     async activateView(file: TAbstractFile) {
+        try {
+            await ensureImageTiles(this.app, this.manifest, file.path);
+        } catch (error) {
+            console.error('Error generating deep-zoom tiles:', error);
+            new Notice(
+                `Failed to generate deep-zoom tiles for ${file.name}. See console for details.`,
+            );
+        }
+
         const tags = this.tags.get(file.path) || [];
         const setTags = (tags: Tag[]) => {
             this.tags.set(file.path, tags);
