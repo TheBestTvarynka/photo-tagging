@@ -1,4 +1,5 @@
 import { ItemView, WorkspaceLeaf, ViewStateResult, TAbstractFile, App, TFile } from 'obsidian';
+import type PhotoTagging from './main';
 import {
     createContext,
     StrictMode,
@@ -22,6 +23,11 @@ interface TaggerState {
     setHashtags: (hashtags: string[], imageWidth: number, imageHeight: number) => void;
     allHashtagNames: string[];
 }
+
+// What's persisted for this tab across Obsidian restarts (see
+// `TaggerView.getState`/`TaggerView.setState`) — just enough to look the
+// image back up and rebuild the rest of the state from the live db.
+type PersistedTaggerState = { filePath: string | null };
 
 export const AppContext = createContext<App | undefined>(undefined);
 
@@ -584,6 +590,7 @@ export const ReactView = ({
 
 export class TaggerView extends ItemView {
     root: Root | null = null;
+    plugin: PhotoTagging;
     taggerState: TaggerState = {
         file: null,
         tags: [],
@@ -593,9 +600,10 @@ export class TaggerView extends ItemView {
         allHashtagNames: [],
     };
 
-    constructor(leaf: WorkspaceLeaf) {
+    constructor(leaf: WorkspaceLeaf, plugin: PhotoTagging) {
         super(leaf);
 
+        this.plugin = plugin;
         this.navigation = true;
     }
 
@@ -619,33 +627,63 @@ export class TaggerView extends ItemView {
         this.root?.unmount();
     }
 
-    async setState(state: TaggerState, result: ViewStateResult): Promise<void> {
-        if (state) {
+    getState(): Record<string, unknown> {
+        const persisted: PersistedTaggerState = {
+            filePath: this.taggerState.file instanceof TFile ? this.taggerState.file.path : null,
+        };
+
+        return persisted;
+    }
+
+    resolveState(state: unknown): TaggerState | null {
+        if (state && typeof (state as Partial<TaggerState>).setTags === 'function') {
+            return state as TaggerState;
+        }
+
+        const filePath = (state as Partial<PersistedTaggerState> | undefined)?.filePath;
+        if (!filePath) {
+            return null;
+        }
+
+        const file = this.app.vault.getAbstractFileByPath(filePath);
+        if (!(file instanceof TFile)) {
+            return null;
+        }
+
+        return { file, ...this.plugin.buildTaggerContext(file) };
+    }
+
+    async setState(state: unknown, result: ViewStateResult): Promise<void> {
+        const resolvedState = this.resolveState(state);
+
+        if (resolvedState) {
             this.taggerState = {
-                file: state.file || null,
-                tags: state.tags || [],
+                file: resolvedState.file || null,
+                tags: resolvedState.tags || [],
                 setTags: (tags: Tag[]) => {
                     this.taggerState.tags = tags;
                     this.renderView();
 
-                    if (state.setTags) {
-                        state.setTags(tags);
+                    if (resolvedState.setTags) {
+                        resolvedState.setTags(tags);
                     }
                 },
-                hashtags: state.hashtags || [],
+                hashtags: resolvedState.hashtags || [],
                 setHashtags: (hashtags: string[], imageWidth: number, imageHeight: number) => {
                     this.taggerState.hashtags = hashtags;
                     this.renderView();
 
-                    if (state.setHashtags) {
-                        state.setHashtags(hashtags, imageWidth, imageHeight);
+                    if (resolvedState.setHashtags) {
+                        resolvedState.setHashtags(hashtags, imageWidth, imageHeight);
                     }
                 },
-                allHashtagNames: state.allHashtagNames || [],
+                allHashtagNames: resolvedState.allHashtagNames || [],
             };
 
             this.renderView();
         }
+
+        result.history = true;
 
         await super.setState(state, result);
     }
