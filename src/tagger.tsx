@@ -595,6 +595,8 @@ export class TaggerView extends ItemView {
 
     constructor(leaf: WorkspaceLeaf) {
         super(leaf);
+
+        this.navigation = true;
     }
 
     getViewType() {
