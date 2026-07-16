@@ -603,6 +603,10 @@ export class TaggerView extends ItemView {
         return VIEW_TYPE;
     }
 
+    getIcon() {
+        return 'user-round-search';
+    }
+
     getDisplayText() {
         return this.taggerState.file instanceof TFile ? this.taggerState.file.basename : 'Tagger';
     }
