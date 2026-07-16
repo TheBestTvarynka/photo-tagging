@@ -48,7 +48,7 @@ export default class PhotoTagging extends Plugin {
             this.hashTags = new Map();
         }
 
-        this.registerView(VIEW_TYPE, (leaf) => new TaggerView(leaf));
+        this.registerView(VIEW_TYPE, (leaf) => new TaggerView(leaf, this));
 
         this.addSettingTab(new PhotoRaggingSettingTab(this.app, this));
 
@@ -132,16 +132,16 @@ export default class PhotoTagging extends Plugin {
         );
     }
 
-    async activateView(file: TAbstractFile) {
-        try {
-            await ensureImageTiles(this.app, this.manifest, file.path);
-        } catch (error) {
-            console.error('Error generating deep-zoom tiles:', error);
-            new Notice(
-                `Failed to generate deep-zoom tiles for ${file.name}. See console for details.`,
-            );
-        }
-
+    // Builds the tags/hashtags data and mutators a tagger view needs for
+    // `file`. Used both when first opening the tagger and when a persisted
+    // tagger tab is restored on Obsidian startup (see `TaggerView.setState`).
+    buildTaggerContext(file: TFile): {
+        tags: Tag[];
+        setTags: (tags: Tag[]) => void;
+        hashtags: string[];
+        setHashtags: (hashtags: string[], imageWidth: number, imageHeight: number) => void;
+        allHashtagNames: string[];
+    } {
         const tags = this.tags.get(file.path) || [];
         const setTags = (tags: Tag[]) => {
             this.tags.set(file.path, tags);
@@ -182,6 +182,26 @@ export default class PhotoTagging extends Plugin {
 
         const allHashtagNames = Array.from(this.hashTags.keys());
 
+        return { tags, setTags, hashtags, setHashtags, allHashtagNames };
+    }
+
+    async activateView(file: TAbstractFile) {
+        if (!(file instanceof TFile)) {
+            return;
+        }
+
+        try {
+            await ensureImageTiles(this.app, this.manifest, file.path);
+        } catch (error) {
+            console.error('Error generating deep-zoom tiles:', error);
+            new Notice(
+                `Failed to generate deep-zoom tiles for ${file.name}. See console for details.`,
+            );
+        }
+
+        const { tags, setTags, hashtags, setHashtags, allHashtagNames } =
+            this.buildTaggerContext(file);
+
         const leaf = this.app.workspace.getLeaf(false);
         await leaf.setViewState({
             type: VIEW_TYPE,
@@ -195,6 +215,13 @@ export default class PhotoTagging extends Plugin {
                 allHashtagNames,
             },
         });
+
+        // Switching images within an already-open tagger tab doesn't change
+        // the leaf's view type, so Obsidian's own change-detection doesn't
+        // notice and schedule a workspace layout save. Ask for one explicitly
+        // so the newly opened image (not the tab's previous one) is what
+        // gets restored on next startup.
+        this.app.workspace.requestSaveLayout();
     }
 
     async saveDb() {
