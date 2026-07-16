@@ -1,4 +1,12 @@
-import { ItemView, WorkspaceLeaf, ViewStateResult, TAbstractFile, App, TFile } from 'obsidian';
+import {
+    ItemView,
+    WorkspaceLeaf,
+    ViewStateResult,
+    TAbstractFile,
+    App,
+    TFile,
+    getIcon,
+} from 'obsidian';
 import type PhotoTagging from './main';
 import {
     createContext,
@@ -193,20 +201,15 @@ const HashtagInput = ({
                     >
                         #{ht}
                         <button
+                            className="photo-tagging-delete-button"
                             onClick={() => removeHashtag(ht)}
-                            style={{
-                                background: 'none',
-                                border: 'none',
-                                color: 'var(--text-muted)',
-                                cursor: 'pointer',
-                                padding: '0 2px',
-                                fontSize: '1.1em',
-                                lineHeight: '1',
-                            }}
                             aria-label={`Remove hashtag ${ht}`}
-                        >
-                            &times;
-                        </button>
+                            title={`Remove hashtag ${ht}`}
+                            style={{ backgroundColor: 'transparent', border: 'none' }}
+                            dangerouslySetInnerHTML={{
+                                __html: getIcon('x')?.outerHTML || '',
+                            }}
+                        />
                     </span>
                 ))}
             </div>
@@ -447,7 +450,7 @@ export const ReactView = ({
                 <span style={{ fontFamily: 'monospace' }}>
                     {coords
                         ? `Coordinates: (${Math.round(coords.x)}, ${Math.round(coords.y)})`
-                        : 'Click image to tag'}
+                        : 'Click the image to tag'}
                 </span>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5em' }}>
                     <input
@@ -528,8 +531,8 @@ export const ReactView = ({
                     >
                         Add Tag
                     </button>
-                    <hr />
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
+                    <hr style={{ margin: '0.5em' }} />
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5em' }}>
                         {tags.map((tag, index) => (
                             <div
                                 key={tag.id}
@@ -541,10 +544,7 @@ export const ReactView = ({
                                 style={{
                                     display: 'inline-flex',
                                     justifyContent: 'space-between',
-                                    backgroundColor:
-                                        hoveredTagIndex === index
-                                            ? 'var(--background-modifier-hover)'
-                                            : 'transparent',
+                                    backgroundColor: 'var(--background-modifier-hover)',
                                     padding: '10px',
                                     borderRadius: '5px',
                                     cursor: 'pointer',
@@ -557,24 +557,19 @@ export const ReactView = ({
                                     {`(${Math.round(tag.coords.x)}, ${Math.round(tag.coords.y)})`}
                                 </span>
                                 <button
+                                    className="photo-tagging-delete-button"
                                     onClick={(e) => handleDeleteTag(e, tag.id)}
-                                    style={{
-                                        background: 'none',
-                                        border: 'none',
-                                        color: 'var(--text-muted)',
-                                        cursor: 'pointer',
-                                        padding: '0 5px',
-                                        fontSize: '1.2em',
-                                        lineHeight: '1',
-                                    }}
                                     aria-label="Remove tag"
-                                >
-                                    &times;
-                                </button>
+                                    title="Remove tag"
+                                    style={{ backgroundColor: 'transparent', border: 'none' }}
+                                    dangerouslySetInnerHTML={{
+                                        __html: getIcon('x')?.outerHTML || '',
+                                    }}
+                                />
                             </div>
                         ))}
                     </div>
-                    <hr />
+                    <hr style={{ margin: '0.5em' }} />
                     <HashtagInput
                         hashtags={hashtags}
                         setHashtags={(newHashtags) =>
