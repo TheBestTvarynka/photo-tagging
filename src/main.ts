@@ -182,7 +182,7 @@ export default class PhotoTagging extends Plugin {
 
         const allHashtagNames = Array.from(this.hashTags.keys());
 
-        const leaf = this.app.workspace.getLeaf(true);
+        const leaf = this.app.workspace.getLeaf(false);
         await leaf.setViewState({
             type: VIEW_TYPE,
             active: true,
