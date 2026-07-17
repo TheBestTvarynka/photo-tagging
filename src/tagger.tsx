@@ -550,10 +550,18 @@ export const ReactView = ({
                                     cursor: 'pointer',
                                 }}
                             >
-                                <span style={{ fontWeight: 'bold', alignSelf: 'center' }}>
+                                {/* I hate to write `paddingTop: '3px'`, but I do not know why the `span` text is not vertically centered. Fuck this shit. */}
+                                <span
+                                    style={{
+                                        fontWeight: 'bold',
+                                        alignSelf: 'center',
+                                        paddingTop: '3px',
+                                    }}
+                                >
                                     {tag.person}
                                 </span>
-                                <span style={{ alignSelf: 'center' }}>
+                                {/* I hate to write `paddingTop: '3px'`, but I do not know why the `span` text is not vertically centered. Fuck this shit. */}
+                                <span style={{ alignSelf: 'center', paddingTop: '3px' }}>
                                     {`(${Math.round(tag.coords.x)}, ${Math.round(tag.coords.y)})`}
                                 </span>
                                 <button
