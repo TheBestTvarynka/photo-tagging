@@ -453,13 +453,7 @@ export const ReactView = ({
                         : 'Click the image to tag'}
                 </span>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5em' }}>
-                    <input
-                        type="text"
-                        placeholder="Search page..."
-                        value={searchQuery}
-                        onChange={(e) => handleSearch(e.target.value)}
-                    />
-                    {selectedFile && (
+                    {selectedFile ? (
                         <div
                             style={{
                                 backgroundColor: 'var(--background-modifier-hover)',
@@ -479,25 +473,23 @@ export const ReactView = ({
                                 {selectedFile.basename}
                             </span>
                             <button
+                                className="photo-tagging-delete-button"
                                 onClick={() => setSelectedFile(null)}
-                                style={{
-                                    background: 'none',
-                                    border: 'none',
-                                    color: 'var(--text-muted)',
-                                    cursor: 'pointer',
-                                    padding: '4px',
-                                    lineHeight: '1',
-                                    fontSize: '1.2em',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    height: 'auto',
-                                }}
                                 aria-label="Clear selection"
-                            >
-                                &times;
-                            </button>
+                                title="Clear selection"
+                                style={{ backgroundColor: 'transparent', border: 'none' }}
+                                dangerouslySetInnerHTML={{
+                                    __html: getIcon('x')?.outerHTML || '',
+                                }}
+                            />
                         </div>
+                    ) : (
+                        <input
+                            type="text"
+                            placeholder="Search page..."
+                            value={searchQuery}
+                            onChange={(e) => handleSearch(e.target.value)}
+                        />
                     )}
                     <div
                         style={{
@@ -550,19 +542,15 @@ export const ReactView = ({
                                     cursor: 'pointer',
                                 }}
                             >
-                                {/* I hate to write `paddingTop: '3px'`, but I do not know why the `span` text is not vertically centered. Fuck this shit. */}
                                 <span
                                     style={{
                                         fontWeight: 'bold',
                                         alignSelf: 'center',
+                                        // I hate to write `paddingTop: '3px'`, but I do not know why the `span` text is not vertically centered. Fuck this shit.
                                         paddingTop: '3px',
                                     }}
                                 >
                                     {tag.person}
-                                </span>
-                                {/* I hate to write `paddingTop: '3px'`, but I do not know why the `span` text is not vertically centered. Fuck this shit. */}
-                                <span style={{ alignSelf: 'center', paddingTop: '3px' }}>
-                                    {`(${Math.round(tag.coords.x)}, ${Math.round(tag.coords.y)})`}
                                 </span>
                                 <button
                                     className="photo-tagging-delete-button"
