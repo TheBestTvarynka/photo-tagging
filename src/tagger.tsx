@@ -345,7 +345,7 @@ export const ReactView = ({
 
     return (
         <div className="photo-tagging-layout">
-            <div style={{ position: 'relative' }}>
+            <div style={{ position: 'relative', height: 'fit-content', alignSelf: 'center', }}>
                 {imageSrc ? (
                     <>
                         <img
