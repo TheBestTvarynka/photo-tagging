@@ -1,4 +1,12 @@
-import { ItemView, WorkspaceLeaf, ViewStateResult, TAbstractFile, App, TFile } from 'obsidian';
+import {
+    ItemView,
+    WorkspaceLeaf,
+    ViewStateResult,
+    TAbstractFile,
+    App,
+    TFile,
+    getIcon,
+} from 'obsidian';
 import type PhotoTagging from './main';
 import {
     createContext,
@@ -127,19 +135,7 @@ const HashtagInput = ({
                     style={{ width: '100%' }}
                 />
                 {isFocused && (suggestions.length > 0 || showCreate) && (
-                    <div
-                        style={{
-                            display: 'flex',
-                            flexDirection: 'column',
-                            gap: '2px',
-                            maxHeight: '150px',
-                            overflowY: 'auto',
-                            padding: '4px',
-                            backgroundColor: 'var(--background-secondary)',
-                            borderRadius: '4px',
-                            marginTop: '2px',
-                        }}
-                    >
+                    <div className="photo-tagging-suggestions-dropdown">
                         {suggestions.map((name) => (
                             <div
                                 key={name}
@@ -157,13 +153,7 @@ const HashtagInput = ({
                         {showCreate && (
                             <div
                                 onMouseDown={() => addHashtag(query.trim())}
-                                className="suggestion-item"
-                                style={{
-                                    cursor: 'pointer',
-                                    padding: '4px 8px',
-                                    fontSize: '0.9em',
-                                    fontStyle: 'italic',
-                                }}
+                                className="suggestion-item photo-tagging-suggestion-create"
                             >
                                 Create &laquo;{query.trim()}&raquo;
                             </div>
@@ -179,34 +169,18 @@ const HashtagInput = ({
                 }}
             >
                 {hashtags.map((ht) => (
-                    <span
-                        key={ht}
-                        style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '4px',
-                            backgroundColor: 'var(--background-modifier-hover)',
-                            padding: '2px 8px',
-                            borderRadius: '12px',
-                            fontSize: '0.85em',
-                        }}
-                    >
+                    <span key={ht} className="photo-tagging-hashtag-chip">
                         #{ht}
                         <button
+                            className="photo-tagging-delete-button"
                             onClick={() => removeHashtag(ht)}
-                            style={{
-                                background: 'none',
-                                border: 'none',
-                                color: 'var(--text-muted)',
-                                cursor: 'pointer',
-                                padding: '0 2px',
-                                fontSize: '1.1em',
-                                lineHeight: '1',
-                            }}
                             aria-label={`Remove hashtag ${ht}`}
-                        >
-                            &times;
-                        </button>
+                            title={`Remove hashtag ${ht}`}
+                            style={{ backgroundColor: 'transparent', border: 'none' }}
+                            dangerouslySetInnerHTML={{
+                                __html: getIcon('x')?.outerHTML || '',
+                            }}
+                        />
                     </span>
                 ))}
             </div>
@@ -370,14 +344,7 @@ export const ReactView = ({
     };
 
     return (
-        <div
-            style={{
-                display: 'grid',
-                width: '100%',
-                height: '100%',
-                gridTemplateColumns: '80% 20%',
-            }}
-        >
+        <div className="photo-tagging-layout">
             <div style={{ position: 'relative' }}>
                 {imageSrc ? (
                     <>
@@ -385,28 +352,14 @@ export const ReactView = ({
                             ref={imgRef}
                             src={imageSrc}
                             onClick={handleImageClick}
-                            style={{
-                                objectFit: 'contain',
-                                cursor: 'crosshair',
-                                width: '100%',
-                                height: '100%',
-                            }}
+                            className="photo-tagging-image"
                             draggable={false}
                             alt={imageName}
                         />
                         {tagCoords && (
                             <div
-                                style={{
-                                    position: 'absolute',
-                                    left: tagCoords.x,
-                                    top: tagCoords.y,
-                                    width: '10px',
-                                    height: '10px',
-                                    backgroundColor: 'blue',
-                                    borderRadius: '50%',
-                                    transform: 'translate(-50%, -50%)',
-                                    pointerEvents: 'none',
-                                }}
+                                className="photo-tagging-cursor-marker"
+                                style={{ left: tagCoords.x, top: tagCoords.y }}
                             />
                         )}
                         {tags.map((tag, index) => {
@@ -416,18 +369,12 @@ export const ReactView = ({
                             return (
                                 <div
                                     key={`tag-${index}`}
-                                    style={{
-                                        position: 'absolute',
-                                        left: x,
-                                        top: y,
-                                        width: hoveredTagIndex === index ? '20px' : '10px',
-                                        height: hoveredTagIndex === index ? '20px' : '10px',
-                                        backgroundColor: 'magenta',
-                                        borderRadius: '50%',
-                                        transform: 'translate(-50%, -50%)',
-                                        pointerEvents: 'none',
-                                        transition: 'width 0.5s, height 0.5s',
-                                    }}
+                                    className={
+                                        hoveredTagIndex === index
+                                            ? 'photo-tagging-tag-dot photo-tagging-tag-dot--hovered'
+                                            : 'photo-tagging-tag-dot'
+                                    }
+                                    style={{ left: x, top: y }}
                                 />
                             );
                         })}
@@ -436,37 +383,15 @@ export const ReactView = ({
                     <span>No Image Selected</span>
                 )}
             </div>
-            <div
-                style={{
-                    padding: '0.5em',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '0.5em',
-                }}
-            >
+            <div className="photo-tagging-sidebar">
                 <span style={{ fontFamily: 'monospace' }}>
                     {coords
                         ? `Coordinates: (${Math.round(coords.x)}, ${Math.round(coords.y)})`
-                        : 'Click image to tag'}
+                        : 'Click the image to tag'}
                 </span>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5em' }}>
-                    <input
-                        type="text"
-                        placeholder="Search page..."
-                        value={searchQuery}
-                        onChange={(e) => handleSearch(e.target.value)}
-                    />
-                    {selectedFile && (
-                        <div
-                            style={{
-                                backgroundColor: 'var(--background-modifier-hover)',
-                                padding: '10px',
-                                borderRadius: '5px',
-                                display: 'flex',
-                                justifyContent: 'space-between',
-                                alignItems: 'center',
-                            }}
-                        >
+                    {selectedFile ? (
+                        <div className="photo-tagging-selected-file">
                             <span
                                 onClick={() => {
                                     openFile(selectedFile).catch((err) => console.error(err));
@@ -476,36 +401,25 @@ export const ReactView = ({
                                 {selectedFile.basename}
                             </span>
                             <button
+                                className="photo-tagging-delete-button"
                                 onClick={() => setSelectedFile(null)}
-                                style={{
-                                    background: 'none',
-                                    border: 'none',
-                                    color: 'var(--text-muted)',
-                                    cursor: 'pointer',
-                                    padding: '4px',
-                                    lineHeight: '1',
-                                    fontSize: '1.2em',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    height: 'auto',
-                                }}
                                 aria-label="Clear selection"
-                            >
-                                &times;
-                            </button>
+                                title="Clear selection"
+                                style={{ backgroundColor: 'transparent', border: 'none' }}
+                                dangerouslySetInnerHTML={{
+                                    __html: getIcon('x')?.outerHTML || '',
+                                }}
+                            />
                         </div>
+                    ) : (
+                        <input
+                            type="text"
+                            placeholder="Search page..."
+                            value={searchQuery}
+                            onChange={(e) => handleSearch(e.target.value)}
+                        />
                     )}
-                    <div
-                        style={{
-                            display: 'flex',
-                            flexDirection: 'column',
-                            gap: '4px',
-                            maxHeight: '200px',
-                            overflowY: 'auto',
-                            padding: '4px',
-                        }}
-                    >
+                    <div className="photo-tagging-search-results">
                         {searchResults.map((file) => (
                             <div
                                 key={file.path}
@@ -528,8 +442,8 @@ export const ReactView = ({
                     >
                         Add Tag
                     </button>
-                    <hr />
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
+                    <hr style={{ margin: '0.5em' }} />
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5em' }}>
                         {tags.map((tag, index) => (
                             <div
                                 key={tag.id}
@@ -538,43 +452,36 @@ export const ReactView = ({
                                 onClick={() => {
                                     handleTagClick(tag.filePath).catch((err) => console.error(err));
                                 }}
-                                style={{
-                                    display: 'inline-flex',
-                                    justifyContent: 'space-between',
-                                    backgroundColor:
-                                        hoveredTagIndex === index
-                                            ? 'var(--background-modifier-hover)'
-                                            : 'transparent',
-                                    padding: '10px',
-                                    borderRadius: '5px',
-                                    cursor: 'pointer',
-                                }}
+                                className={
+                                    hoveredTagIndex === index
+                                        ? 'photo-tagging-tag-item photo-tagging-tag-item--hovered'
+                                        : 'photo-tagging-tag-item'
+                                }
                             >
-                                <span style={{ fontWeight: 'bold', alignSelf: 'center' }}>
+                                <span
+                                    style={{
+                                        fontWeight: 'bold',
+                                        alignSelf: 'center',
+                                        // I hate to write `paddingTop: '3px'`, but I do not know why the `span` text is not vertically centered. Fuck this shit.
+                                        paddingTop: '3px',
+                                    }}
+                                >
                                     {tag.person}
                                 </span>
-                                <span style={{ alignSelf: 'center' }}>
-                                    {`(${Math.round(tag.coords.x)}, ${Math.round(tag.coords.y)})`}
-                                </span>
                                 <button
+                                    className="photo-tagging-delete-button"
                                     onClick={(e) => handleDeleteTag(e, tag.id)}
-                                    style={{
-                                        background: 'none',
-                                        border: 'none',
-                                        color: 'var(--text-muted)',
-                                        cursor: 'pointer',
-                                        padding: '0 5px',
-                                        fontSize: '1.2em',
-                                        lineHeight: '1',
-                                    }}
                                     aria-label="Remove tag"
-                                >
-                                    &times;
-                                </button>
+                                    title="Remove tag"
+                                    style={{ backgroundColor: 'transparent', border: 'none' }}
+                                    dangerouslySetInnerHTML={{
+                                        __html: getIcon('x')?.outerHTML || '',
+                                    }}
+                                />
                             </div>
                         ))}
                     </div>
-                    <hr />
+                    <hr style={{ margin: '0.5em' }} />
                     <HashtagInput
                         hashtags={hashtags}
                         setHashtags={(newHashtags) =>
