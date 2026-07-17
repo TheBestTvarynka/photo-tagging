@@ -378,7 +378,7 @@ export const ReactView = ({
                 display: 'grid',
                 width: '100%',
                 height: '100%',
-                gridTemplateColumns: '80% 20%',
+                gridTemplateColumns: '70% 30%',
             }}
         >
             <div style={{ position: 'relative' }}>
@@ -445,6 +445,7 @@ export const ReactView = ({
                     display: 'flex',
                     flexDirection: 'column',
                     gap: '0.5em',
+                    overflowY: 'auto',
                 }}
             >
                 <span style={{ fontFamily: 'monospace' }}>
