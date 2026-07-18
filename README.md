@@ -64,8 +64,10 @@ cp manifest.json ${PHOTO_TAGGING_DIR}
        ```
    ```
    The plugin automatically resolves photos assigned to the current person:
-
-   ![](./assets/profile.png)
+   
+   | Person's plain gallery | Photos are grouped by hashtags |
+   |-|-|
+   | ![](./assets/profile.png) | ![](./assets/profile_hashtags.png) |
 
 All tags are saved inside JSON file. By default, the JSON file is located in the `photo-tags.json` at the root of the vault.
 You can change it in the plugin settings.
