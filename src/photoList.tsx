@@ -47,6 +47,8 @@ const getTileUrlFn =
         return adapter.getResourcePath(`${tileFilesDir}/${z}/${x}_${y}.jpg`);
     };
 
+const NoPhotosMessage = () => <div className="photo-tagging-no-photos">No photos found.</div>;
+
 const PhotoGallery = ({
     app,
     galleryId,
@@ -260,7 +262,14 @@ const PhotoList = ({ app, manifest, ctx, tags, hashTags, source }: PhotoListProp
     const baseGalleryId = 'taggedphotosgallery' + ctx.docId;
 
     if (!groupByHashtags) {
+        if (allPhotos.length === 0) {
+            return <NoPhotosMessage />;
+        }
         return <PhotoGallery app={app} galleryId={baseGalleryId} photos={allPhotos} />;
+    }
+
+    if (groupedPhotos.length === 0) {
+        return <NoPhotosMessage />;
     }
 
     return (
