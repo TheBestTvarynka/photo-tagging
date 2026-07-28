@@ -275,22 +275,16 @@ export const ReactView = ({
         setSearchResults(results);
     };
 
-    const handleSelectFile = (file: TFile) => {
-        setSelectedFile(file);
-        setSearchQuery('');
-        setSearchResults([]);
-    };
-
-    const handleAddTag = () => {
-        if (!selectedFile || !coords || !tagCoords) {
+    const createTag = (file: TFile) => {
+        if (!coords) {
             return;
         }
 
         const newTag: Tag = {
             id: crypto.randomUUID(),
-            person: selectedFile.basename,
+            person: file.basename,
             coords: coords,
-            filePath: selectedFile.path,
+            filePath: file.path,
             imageWidth: imgSize.naturalWidth,
             imageHeight: imgSize.naturalHeight,
         };
@@ -301,6 +295,27 @@ export const ReactView = ({
         setSearchQuery('');
         setCoords(null);
         setTagCoords(null);
+    };
+
+    const handleSelectFile = (file: TFile) => {
+        // Coordinates are already set (image was clicked first), so tag the
+        // person immediately instead of requiring a separate "Add Tag" click.
+        if (coords && tagCoords) {
+            createTag(file);
+            return;
+        }
+
+        setSelectedFile(file);
+        setSearchQuery('');
+        setSearchResults([]);
+    };
+
+    const handleAddTag = () => {
+        if (!selectedFile || !coords || !tagCoords) {
+            return;
+        }
+
+        createTag(selectedFile);
     };
 
     const openFile = async (file: TAbstractFile | null) => {
@@ -345,7 +360,7 @@ export const ReactView = ({
 
     return (
         <div className="photo-tagging-layout">
-            <div style={{ position: 'relative', height: 'fit-content', alignSelf: 'center', }}>
+            <div style={{ position: 'relative', height: 'fit-content', alignSelf: 'center' }}>
                 {imageSrc ? (
                     <>
                         <img
