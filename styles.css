@@ -495,3 +495,10 @@ photoswipe/dist/photoswipe.css:
 .photo-tagging-tag-item--hovered {
     background-color: var(--background-modifier-hover);
 }
+
+.photo-tagging-no-photos {
+    padding: 0.5em 1em;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 4px;
+    color: var(--text-muted);
+}
