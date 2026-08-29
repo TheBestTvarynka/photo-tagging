@@ -12,9 +12,9 @@ type TagsDb = Map<string, Tag[]>;
 type HashTagsDb = Map<string, ImagePath[]>;
 
 export default class PhotoTagging extends Plugin {
-    settings: PhotoTaggingSettings;
-    tags: TagsDb;
-    hashTags: HashTagsDb;
+    settings: PhotoTaggingSettings = DEFAULT_SETTINGS;
+    tags: TagsDb = new Map();
+    hashTags: HashTagsDb = new Map();
 
     async onload() {
         await this.loadSettings();
@@ -81,6 +81,29 @@ export default class PhotoTagging extends Plugin {
                 this.generateAllTiles().catch((err) => console.error(err));
             },
         });
+
+        this.addCommand({
+            id: 'open-active-image-in-tagger',
+            name: 'Open current image in tagger',
+            checkCallback: (checking: boolean) => {
+                const file = this.app.workspace.getActiveFile();
+                if (!file || !this.isImageFile(file)) {
+                    return false;
+                }
+
+                if (!checking) {
+                    this.activateView(file).catch((err) => console.error(err));
+                }
+
+                return true;
+            },
+        });
+    }
+
+    isImageFile(file: TAbstractFile): boolean {
+        return (
+            file.name.endsWith('.jpg') || file.name.endsWith('.png') || file.name.endsWith('.jpeg')
+        );
     }
 
     // Backfills deep-zoom tiles for every image referenced in the db, for
@@ -309,11 +332,7 @@ export default class PhotoTagging extends Plugin {
     onunload() {}
 
     handleFileMenu(menu: Menu, file: TAbstractFile) {
-        if (
-            file.name.endsWith('.jpg') ||
-            file.name.endsWith('.png') ||
-            file.name.endsWith('.jpeg')
-        ) {
+        if (this.isImageFile(file)) {
             menu.addItem((item: MenuItem) => {
                 item.setTitle('Open in tagger')
                     .setIcon('pin')
