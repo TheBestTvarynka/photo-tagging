@@ -47,6 +47,31 @@ const getTileUrlFn =
         return adapter.getResourcePath(`${tileFilesDir}/${z}/${x}_${y}.jpg`);
     };
 
+// Converts a gallery anchor into the slide data PhotoSwipe would otherwise
+// derive from the DOM itself. We do it by hand because PhotoSwipe's own
+// DOM parsing is bound to the main window: `getElementsFromOption` scopes its
+// selector to the global `document`, and both it and `getItemData` branch on
+// `x instanceof Element`. Obsidian runs plugin code in the main window's realm
+// even while rendering into a popout, so a popout's nodes fail that check
+// against the main window's `Element` and PhotoSwipe silently ends up with an
+// empty gallery. Parsing the anchors ourselves keeps one code path that
+// behaves the same in every window.
+const anchorToSlideData = (anchor: HTMLAnchorElement) => {
+    const thumbnail = anchor.querySelector('img');
+
+    return {
+        // The deep-zoom plugin reads its `data-pswp-*` tile settings off this,
+        // and PhotoSwipe uses it for the open/close zoom animation.
+        element: anchor,
+        src: anchor.href,
+        width: Number(anchor.dataset.pswpWidth) || 0,
+        height: Number(anchor.dataset.pswpHeight) || 0,
+        // Preview shown until the full-size image is decoded.
+        msrc: thumbnail?.currentSrc || thumbnail?.src,
+        alt: thumbnail?.alt ?? '',
+    };
+};
+
 const NoPhotosMessage = () => <div className="photo-tagging-no-photos">No photos found.</div>;
 
 const PhotoGallery = ({
@@ -61,10 +86,26 @@ const PhotoGallery = ({
     const galleryRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
-        let lightbox: PhotoSwipeLightbox | null = new PhotoSwipeLightbox({
-            gallery: '#' + galleryId,
-            children: 'a',
+        const galleryEl = galleryRef.current;
+        if (!galleryEl) {
+            return;
+        }
+
+        // A note opened in a separate window renders into that window's
+        // document, while `document`/`window` here keep pointing at the main
+        // one. Pin PhotoSwipe to the gallery's own window so the lightbox is
+        // appended next to the thumbnails and sized to the right viewport.
+        const doc = galleryEl.ownerDocument;
+        const win = doc.defaultView ?? window;
+        const isPopout = doc !== document;
+
+        const lightbox = new PhotoSwipeLightbox({
             pswpModule: () => import('photoswipe'),
+            appendToEl: doc.body,
+            getViewportSizeFn: () => ({
+                x: doc.documentElement.clientWidth,
+                y: win.innerHeight,
+            }),
         });
 
         if (app.vault.adapter instanceof FileSystemAdapter) {
@@ -74,15 +115,83 @@ const PhotoGallery = ({
             });
         }
 
-        lightbox.init();
+        // Deliberately not `lightbox.init()`, and no `gallery`/`children`
+        // options: both go through the realm-bound DOM lookups described above,
+        // and `init`'s click handler would replace our `dataSource` with a
+        // gallery element PhotoSwipe cannot read in a popout.
+        const handleClick = (event: MouseEvent) => {
+            // Let the browser handle modified clicks, like PhotoSwipe does.
+            if (
+                event.button === 1 ||
+                event.ctrlKey ||
+                event.metaKey ||
+                event.altKey ||
+                event.shiftKey
+            ) {
+                return;
+            }
+
+            const anchor = (event.target as Element | null)?.closest('a');
+            if (!anchor) {
+                return;
+            }
+
+            const anchors = Array.from(galleryEl.querySelectorAll('a'));
+            const index = anchors.indexOf(anchor);
+            if (index < 0) {
+                return;
+            }
+
+            event.preventDefault();
+
+            lightbox.options.dataSource = anchors.map(anchorToSlideData);
+            lightbox.loadAndOpen(index, undefined, { x: event.clientX, y: event.clientY });
+        };
+
+        // PhotoSwipe binds its keyboard and resize handlers to the main window
+        // too, so in a popout they never fire. Only the lightbox that is open
+        // has a `pswp`, so sibling galleries ignore these.
+        const handleKeyDown = (event: KeyboardEvent) => {
+            const pswp = lightbox.pswp;
+            if (!pswp) {
+                return;
+            }
+
+            switch (event.key) {
+                case 'Escape':
+                    pswp.close();
+                    break;
+                case 'ArrowLeft':
+                    pswp.prev();
+                    break;
+                case 'ArrowRight':
+                    pswp.next();
+                    break;
+                default:
+                    return;
+            }
+
+            event.preventDefault();
+        };
+        const handleResize = () => lightbox.pswp?.updateSize();
+
+        galleryEl.addEventListener('click', handleClick);
+        if (isPopout) {
+            doc.addEventListener('keydown', handleKeyDown);
+            win.addEventListener('resize', handleResize);
+        }
 
         return () => {
-            if (lightbox) {
-                lightbox.destroy();
+            galleryEl.removeEventListener('click', handleClick);
+
+            if (isPopout) {
+                doc.removeEventListener('keydown', handleKeyDown);
+                win.removeEventListener('resize', handleResize);
             }
-            lightbox = null;
+
+            lightbox.destroy();
         };
-    }, [galleryId, app]);
+    }, [app]);
 
     return (
         <div className="pswp-gallery" id={galleryId} ref={galleryRef}>
