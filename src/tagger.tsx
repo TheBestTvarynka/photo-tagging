@@ -9,6 +9,7 @@ import {
 } from 'obsidian';
 import type PhotoTagging from './main';
 import { HashtagInput } from './hashtagInput';
+import { comboboxProps, SuggestionList, useSuggestionList } from './suggestionList';
 import {
     createContext,
     StrictMode,
@@ -193,6 +194,11 @@ export const ReactView = ({
         createTag(selectedFile);
     };
 
+    const searchList = useSuggestionList({
+        items: searchResults,
+        onCommit: handleSelectFile,
+    });
+
     const openFile = async (file: TAbstractFile | null) => {
         if (!app) {
             return;
@@ -306,25 +312,18 @@ export const ReactView = ({
                             type="text"
                             placeholder="Search page..."
                             value={searchQuery}
+                            {...comboboxProps(searchList)}
                             onChange={(e) => handleSearch(e.target.value)}
+                            onKeyDown={searchList.handleKeyDown}
                         />
                     )}
-                    <div className="photo-tagging-search-results">
-                        {searchResults.map((file) => (
-                            <div
-                                key={file.path}
-                                onClick={() => handleSelectFile(file)}
-                                style={{
-                                    cursor: 'pointer',
-                                    padding: '4px 8px',
-                                    fontSize: '0.9em',
-                                }}
-                                className="suggestion-item"
-                            >
-                                {file.basename}
-                            </div>
-                        ))}
-                    </div>
+                    <SuggestionList
+                        list={searchList}
+                        items={searchResults}
+                        className="photo-tagging-search-results"
+                        getKey={(file) => file.path}
+                        getLabel={(file) => file.basename}
+                    />
 
                     <button
                         onClick={handleAddTag}
