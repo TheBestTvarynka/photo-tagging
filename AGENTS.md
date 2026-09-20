@@ -15,7 +15,7 @@ To get familiar with the project purpose and development philosophy, read the [R
 - **Bundler: esbuild** (required for this sample - `esbuild.config.mjs` and build scripts depend on it). Alternative bundlers like Rollup or webpack are acceptable for other projects if they bundle all external dependencies into `main.js`.
 - Types: `obsidian` type definitions.
 
-### Install
+### Install dependencies
 
 ```bash
 npm install
@@ -33,17 +33,12 @@ npm run dev
 npm run build
 ```
 
-## Code style
+## Linting
 
-Run linter:
+After every change, run the linter and formatter:
 
 ```bash
 npx eslint .
-```
-
-Format the code:
-
-```bash
 npx prettier . --write
 ```
 

@@ -8,6 +8,8 @@ import {
     getIcon,
 } from 'obsidian';
 import type PhotoTagging from './main';
+import { HashtagInput } from './hashtagInput';
+import { comboboxProps, SuggestionList, useSuggestionList } from './suggestionList';
 import {
     createContext,
     StrictMode,
@@ -16,8 +18,6 @@ import {
     MouseEvent,
     useRef,
     useEffect,
-    useMemo,
-    KeyboardEvent,
 } from 'react';
 import { Root, createRoot } from 'react-dom/client';
 
@@ -62,130 +62,6 @@ export type ImagePath = {
     path: string;
     imageWidth: number;
     imageHeight: number;
-};
-
-const HashtagInput = ({
-    hashtags,
-    setHashtags,
-    allHashtagNames,
-}: {
-    hashtags: string[];
-    setHashtags: (hashtags: string[]) => void;
-    allHashtagNames: string[];
-}) => {
-    const [query, setQuery] = useState('');
-    const [isFocused, setIsFocused] = useState(false);
-
-    const suggestions = useMemo(() => {
-        if (!query.trim()) {
-            return [];
-        }
-
-        const q = query.toLowerCase();
-        return allHashtagNames.filter(
-            (name) => name.toLowerCase().includes(q) && !hashtags.includes(name),
-        );
-    }, [query, allHashtagNames, hashtags]);
-
-    const exactMatch = allHashtagNames.some(
-        (hashtagName) => hashtagName.toLowerCase() === query.trim().toLowerCase(),
-    );
-    const showCreate = query.trim() && !exactMatch && !hashtags.includes(query.trim());
-
-    const addHashtag = (name: string) => {
-        if (!hashtags.includes(name)) {
-            setHashtags([...hashtags, name]);
-        }
-
-        setQuery('');
-    };
-
-    const removeHashtag = (name: string) => {
-        setHashtags(hashtags.filter((hashtagName) => hashtagName !== name));
-    };
-
-    const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
-        if (e.key === 'Enter' && query.trim()) {
-            e.preventDefault();
-            // If there's exactly one suggestion, pick it; otherwise create.
-            if (suggestions.length === 1) {
-                addHashtag(suggestions[0]!);
-            } else if (showCreate) {
-                addHashtag(query.trim());
-            } else if (suggestions.length > 0) {
-                addHashtag(suggestions[0]!);
-            }
-        }
-    };
-
-    return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <div style={{ position: 'relative' }}>
-                <input
-                    type="text"
-                    placeholder="Add hashtag..."
-                    value={query}
-                    onChange={(e) => setQuery(e.target.value)}
-                    onFocus={() => setIsFocused(true)}
-                    onBlur={() => {
-                        // Delay to allow click on suggestion.
-                        setTimeout(() => setIsFocused(false), 150);
-                    }}
-                    onKeyDown={handleKeyDown}
-                    style={{ width: '100%' }}
-                />
-                {isFocused && (suggestions.length > 0 || showCreate) && (
-                    <div className="photo-tagging-suggestions-dropdown">
-                        {suggestions.map((name) => (
-                            <div
-                                key={name}
-                                onMouseDown={() => addHashtag(name)}
-                                className="suggestion-item"
-                                style={{
-                                    cursor: 'pointer',
-                                    padding: '4px 8px',
-                                    fontSize: '0.9em',
-                                }}
-                            >
-                                #{name}
-                            </div>
-                        ))}
-                        {showCreate && (
-                            <div
-                                onMouseDown={() => addHashtag(query.trim())}
-                                className="suggestion-item photo-tagging-suggestion-create"
-                            >
-                                Create &laquo;{query.trim()}&raquo;
-                            </div>
-                        )}
-                    </div>
-                )}
-            </div>
-            <div
-                style={{
-                    display: 'flex',
-                    flexWrap: 'wrap',
-                    gap: '4px',
-                }}
-            >
-                {hashtags.map((ht) => (
-                    <span key={ht} className="photo-tagging-hashtag-chip">
-                        #{ht}
-                        <button
-                            className="photo-tagging-delete-button"
-                            onClick={() => removeHashtag(ht)}
-                            aria-label={`Remove hashtag ${ht}`}
-                            title={`Remove hashtag ${ht}`}
-                            style={{ backgroundColor: 'transparent', border: 'none' }}
-                            dangerouslySetInnerHTML={{
-                                __html: getIcon('x')?.outerHTML || '',
-                            }}
-                        />
-                    </span>
-                ))}
-            </div>
-        </div>
-    );
 };
 
 export const ReactView = ({
@@ -318,6 +194,11 @@ export const ReactView = ({
         createTag(selectedFile);
     };
 
+    const searchList = useSuggestionList({
+        items: searchResults,
+        onCommit: handleSelectFile,
+    });
+
     const openFile = async (file: TAbstractFile | null) => {
         if (!app) {
             return;
@@ -431,25 +312,18 @@ export const ReactView = ({
                             type="text"
                             placeholder="Search page..."
                             value={searchQuery}
+                            {...comboboxProps(searchList)}
                             onChange={(e) => handleSearch(e.target.value)}
+                            onKeyDown={searchList.handleKeyDown}
                         />
                     )}
-                    <div className="photo-tagging-search-results">
-                        {searchResults.map((file) => (
-                            <div
-                                key={file.path}
-                                onClick={() => handleSelectFile(file)}
-                                style={{
-                                    cursor: 'pointer',
-                                    padding: '4px 8px',
-                                    fontSize: '0.9em',
-                                }}
-                                className="suggestion-item"
-                            >
-                                {file.basename}
-                            </div>
-                        ))}
-                    </div>
+                    <SuggestionList
+                        list={searchList}
+                        items={searchResults}
+                        className="photo-tagging-search-results"
+                        getKey={(file) => file.path}
+                        getLabel={(file) => file.basename}
+                    />
 
                     <button
                         onClick={handleAddTag}

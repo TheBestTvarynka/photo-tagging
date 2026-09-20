@@ -386,6 +386,26 @@ photoswipe/dist/photoswipe.css:
     cursor: pointer;
 }
 
+.photo-tagging-hashtag-input {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.photo-tagging-hashtag-input-field {
+    position: relative;
+}
+
+.photo-tagging-hashtag-input-field input {
+    width: 100%;
+}
+
+.photo-tagging-hashtag-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
 .photo-tagging-suggestions-dropdown {
     display: flex;
     flex-direction: column;
@@ -398,10 +418,21 @@ photoswipe/dist/photoswipe.css:
     margin-top: 2px;
 }
 
-.photo-tagging-suggestion-create {
+.photo-tagging-suggestion-item {
     cursor: pointer;
     padding: 4px 8px;
+    border-radius: var(--radius-s);
     font-size: 0.9em;
+}
+
+/* The highlighted row moves with the arrow keys and with the pointer, and is
+   what Enter commits. */
+.photo-tagging-suggestion-item.is-selected {
+    background-color: var(--background-modifier-hover);
+    color: var(--text-normal);
+}
+
+.photo-tagging-suggestion-create {
     font-style: italic;
 }
 
@@ -413,6 +444,12 @@ photoswipe/dist/photoswipe.css:
     padding: 2px 8px;
     border-radius: 12px;
     font-size: 0.85em;
+}
+
+.photo-tagging-hashtag-chip .photo-tagging-delete-button {
+    background-color: transparent;
+    border: none;
+    box-shadow: none;
 }
 
 .photo-tagging-layout {

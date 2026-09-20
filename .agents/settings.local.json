@@ -1,0 +1,18 @@
+{
+    "permissions": {
+        "allow": [
+            "Bash(npx tsc *)",
+            "Bash(npx eslint *)",
+            "Bash(npm run *)",
+            "Bash(git show *)",
+            "Bash(npx prettier *)",
+            "WebFetch(domain:github.com)",
+            "WebFetch(domain:raw.githubusercontent.com)",
+            "WebFetch(domain:www.libvips.org)",
+            "Bash(npm view *)",
+            "Bash(npm install *)",
+            "Bash(node esbuild.config.mjs production)",
+            "Bash(node *)"
+        ]
+    }
+}
