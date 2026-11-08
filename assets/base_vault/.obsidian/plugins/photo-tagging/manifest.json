@@ -1,0 +1,10 @@
+{
+    "id": "photo-tagging",
+    "name": "Photo-tagging",
+    "version": "0.3.1",
+    "minAppVersion": "1.8.7",
+    "description": "Plugin for tagging people on photos and rendering interactive galleries.",
+    "author": "TheBestTvarynka",
+    "authorUrl": "https://tbt.qkation.com/about/",
+    "isDesktopOnly": true
+}
