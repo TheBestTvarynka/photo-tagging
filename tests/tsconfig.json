@@ -8,7 +8,8 @@
         "noEmit": true,
         "skipLibCheck": true,
         "isolatedModules": true,
+        "jsx": "react-jsx",
         "types": ["node", "obsidian-integration-testing/vitest/typings"]
     },
-    "include": ["./**/*.ts"]
+    "include": ["./**/*.ts", "../src/photoswipe-deep-zoom-plugin.d.ts"]
 }

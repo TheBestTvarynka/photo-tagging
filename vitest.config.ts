@@ -12,6 +12,8 @@ export default defineConfig({
         environmentOptions: {
             obsidianTransport: { shouldDisableSandbox: Boolean(process.env.CI) },
         },
+        // The default of 1 s is too tight for UI updates on a busy machine.
+        expect: { poll: { timeout: 10_000 } },
         testTimeout: 60_000,
         hookTimeout: 120_000,
     },
