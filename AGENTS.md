@@ -15,23 +15,9 @@ To get familiar with the project purpose and development philosophy, read the [R
 - **Bundler: esbuild** (required for this sample - `esbuild.config.mjs` and build scripts depend on it). Alternative bundlers like Rollup or webpack are acceptable for other projects if they bundle all external dependencies into `main.js`.
 - Types: `obsidian` type definitions.
 
-### Install dependencies
+## Testing
 
-```bash
-npm install
-```
-
-### Dev (watch)
-
-```bash
-npm run dev
-```
-
-### Production build
-
-```bash
-npm run build
-```
+**Every implemented feature or fixed bug must have an E2E test which check the implementation correctness.**
 
 ## Linting
 
