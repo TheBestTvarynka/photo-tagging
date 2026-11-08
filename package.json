@@ -8,23 +8,28 @@
 		"dev": "node esbuild.config.mjs",
 		"build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
 		"version": "node version-bump.mjs && git add manifest.json versions.json",
-		"lint": "eslint ."
+		"lint": "eslint .",
+		"test": "npm run build && vitest run"
 	},
 	"keywords": [],
 	"license": "MIT",
 	"devDependencies": {
 		"@eslint/js": "9.30.1",
-		"@types/node": "^16.11.6",
+		"@types/node": "^22.20.5",
 		"@types/react": "^18.3.31",
 		"@types/react-dom": "^18.3.7",
 		"esbuild": "0.25.5",
 		"eslint-plugin-obsidianmd": "0.1.9",
 		"globals": "14.0.0",
 		"jiti": "2.6.1",
+		"obsidian-integration-testing": "^17.9.1",
 		"prettier": "3.8.1",
 		"tslib": "2.4.0",
+		"type-fest": "^5.10.0",
 		"typescript": "^5.8.3",
-		"typescript-eslint": "8.35.1"
+		"typescript-eslint": "8.35.1",
+		"vite": "^7.3.7",
+		"vitest": "^5.1.0"
 	},
 	"dependencies": {
 		"obsidian": "latest",

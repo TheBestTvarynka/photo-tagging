@@ -11,8 +11,8 @@ type TagsDb = Map<string, Tag[]>;
 // Key is the hashtag name and value is list of image paths.
 type HashTagsDb = Map<string, ImagePath[]>;
 
-// `type: hashtag` shows the photos of the hashtag named like the note itself.
-const HASHTAG_NOTE_CONTENT = '```tagged-photos\ntype: hashtag\n```\n';
+const hashtagNoteContent = (hashtag: string) =>
+    `\`\`\`tagged-photos\nhashtag: ${hashtag}\n\`\`\`\n`;
 
 export default class PhotoTagging extends Plugin {
     settings: PhotoTaggingSettings = DEFAULT_SETTINGS;
@@ -254,25 +254,26 @@ export default class PhotoTagging extends Plugin {
     // existing note with that name is opened as is: it may hold the user's own
     // content, so it is never modified.
     async openHashtagNote(hashtag: string) {
-        // The block finds its photos by the note's name, so the file name has to
-        // be exactly the hashtag. These would make it a different path or name.
-        if (/^\.|[\\/:]/.test(hashtag)) {
+        // Obsidian doesn't allow these characters in a file name.
+        if (/[\\/:]/.test(hashtag)) {
             new Notice(
                 `Cannot create a note for #${hashtag}: invalid characters in the file name.`,
             );
             return;
         }
 
-        const path = normalizePath(`${hashtag}.md`);
+        const path = normalizePath(`tag-${hashtag}.md`);
         const existing = this.app.vault.getAbstractFileByPath(path);
 
         try {
             const file =
                 existing instanceof TFile
                     ? existing
-                    : await this.app.vault.create(path, HASHTAG_NOTE_CONTENT);
+                    : await this.app.vault.create(path, hashtagNoteContent(hashtag));
 
-            await this.app.workspace.getLeaf(true).openFile(file);
+            // In Live Preview the cursor would start inside the block, which then
+            // shows its source instead of the gallery.
+            await this.app.workspace.getLeaf(true).openFile(file, { state: { mode: 'preview' } });
         } catch (error) {
             console.error(`Error opening note for hashtag ${hashtag}:`, error);
             new Notice(`Failed to open a note for #${hashtag}. See console for details.`);
