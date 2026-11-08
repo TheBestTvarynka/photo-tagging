@@ -14,10 +14,12 @@ export const HashtagInput = ({
     hashtags,
     setHashtags,
     allHashtagNames,
+    onHashtagClick,
 }: {
     hashtags: string[];
     setHashtags: (hashtags: string[]) => void;
     allHashtagNames: string[];
+    onHashtagClick: (name: string) => void;
 }) => {
     const [query, setQuery] = useState('');
     const [isFocused, setIsFocused] = useState(false);
@@ -96,7 +98,13 @@ export const HashtagInput = ({
             <div className="photo-tagging-hashtag-chips">
                 {hashtags.map((ht) => (
                     <span key={ht} className="photo-tagging-hashtag-chip">
-                        #{ht}
+                        <button
+                            className="photo-tagging-hashtag-link"
+                            onClick={() => onHashtagClick(ht)}
+                            title={`Show photos with hashtag ${ht}`}
+                        >
+                            #{ht}
+                        </button>
                         <button
                             className="photo-tagging-delete-button"
                             onClick={() => removeHashtag(ht)}

@@ -1,6 +1,7 @@
 import { Plugin, Menu, MenuItem, Notice, TAbstractFile, TFile } from 'obsidian';
 
 import { ImagePath, Tag, TaggerView, VIEW_TYPE } from './tagger';
+import { HASHTAG_VIEW_TYPE, HashtagView, HashtagViewState } from './hashtagView';
 import { DEFAULT_SETTINGS, PhotoTaggingSettings, PhotoRaggingSettingTab } from './settings';
 import { mountPhotoList } from './photoList';
 import { CURRENT_DB_VERSION, migrateDb, SerializedDb } from './migrations';
@@ -49,6 +50,7 @@ export default class PhotoTagging extends Plugin {
         }
 
         this.registerView(VIEW_TYPE, (leaf) => new TaggerView(leaf, this));
+        this.registerView(HASHTAG_VIEW_TYPE, (leaf) => new HashtagView(leaf, this));
 
         this.addSettingTab(new PhotoRaggingSettingTab(this.app, this));
 
@@ -245,6 +247,16 @@ export default class PhotoTagging extends Plugin {
         // so the newly opened image (not the tab's previous one) is what
         // gets restored on next startup.
         this.app.workspace.requestSaveLayout();
+    }
+
+    async openHashtagView(hashtag: string) {
+        const state: HashtagViewState = { hashtag };
+
+        await this.app.workspace.getLeaf(true).setViewState({
+            type: HASHTAG_VIEW_TYPE,
+            active: true,
+            state,
+        });
     }
 
     async saveDb() {
