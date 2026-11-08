@@ -1,0 +1,29 @@
+name: E2E tests
+
+on:
+    push:
+        branches: [master]
+    pull_request:
+
+env:
+    OBSIDIAN_VERSION: 1.15.0
+
+jobs:
+    test:
+        runs-on: ubuntu-latest
+
+        steps:
+            - uses: actions/checkout@v6
+            - uses: actions/setup-node@v6
+              with:
+                  node-version: 24.x
+                  cache: npm
+
+            - name: Install Obsidian, libvips, and a virtual display
+              run: |
+                  curl -fsSL -o obsidian.deb "https://github.com/obsidianmd/obsidian-releases/releases/download/v${OBSIDIAN_VERSION}/obsidian_${OBSIDIAN_VERSION}_amd64.deb"
+                  sudo apt-get update
+                  sudo apt-get install -y ./obsidian.deb libvips-tools xvfb
+
+            - run: npm ci
+            - run: xvfb-run -a npm test
