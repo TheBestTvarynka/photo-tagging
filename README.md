@@ -7,6 +7,7 @@ Obsidian plugin for tagging people on photos
     - [Obsidian Community Plugins](#obsidian-community-plugins)
     - [Manual installation](#manual-installation)
   - [Manual](#manual)
+  - [Tests](#tests)
   - [BDFL](#bdfl)
 
 ## Motivation
@@ -69,8 +70,27 @@ cp manifest.json ${PHOTO_TAGGING_DIR}
    |-|-|
    | ![](./assets/profile.png) | ![](./assets/profile_hashtags.png) |
 
+   By default, the block shows photos where the current note is tagged. Add one of these options inside the block to change that:
+
+   | Option | Shows |
+   |-|-|
+   | `group: hashtags` | Photos where the current note is tagged, grouped by hashtag. |
+   | `type: hashtag` | Photos with the hashtag named like the current note. |
+   | `hashtag: <name>` | Photos with the `<name>` hashtag. |
+4. Select a hashtag in the tagger to open its `tag-<name>` note at the root of the vault. The note is created on first use and contains a block with the `hashtag: <name>` option.
+
 All tags are saved inside JSON file. By default, the JSON file is located in the `photo-tags.json` at the root of the vault.
 You can change it in the plugin settings.
+
+## Tests
+
+Integration tests run in a real, isolated Obsidian instance using [`obsidian-integration-testing`](https://github.com/mnaoumov/obsidian-integration-testing). You must have Obsidian and `libvips` installed.
+
+```bash
+npm test
+```
+
+Each test copies `assets/base_vault` into the `test_vaults/` directory and installs the fresh plugin build there. The copy stays on disk after the run, so you can inspect it.
 
 ## BDFL
 

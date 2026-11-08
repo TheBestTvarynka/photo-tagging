@@ -1,4 +1,4 @@
-import { Plugin, Menu, MenuItem, Notice, TAbstractFile, TFile } from 'obsidian';
+import { Plugin, Menu, MenuItem, Notice, TAbstractFile, TFile, normalizePath } from 'obsidian';
 
 import { ImagePath, Tag, TaggerView, VIEW_TYPE } from './tagger';
 import { DEFAULT_SETTINGS, PhotoTaggingSettings, PhotoRaggingSettingTab } from './settings';
@@ -10,6 +10,9 @@ import { deleteImageTiles, ensureImageTiles, moveImageTiles } from './tiling';
 type TagsDb = Map<string, Tag[]>;
 // Key is the hashtag name and value is list of image paths.
 type HashTagsDb = Map<string, ImagePath[]>;
+
+const hashtagNoteContent = (hashtag: string) =>
+    `\`\`\`tagged-photos\nhashtag: ${hashtag}\n\`\`\`\n`;
 
 export default class PhotoTagging extends Plugin {
     settings: PhotoTaggingSettings = DEFAULT_SETTINGS;
@@ -245,6 +248,36 @@ export default class PhotoTagging extends Plugin {
         // so the newly opened image (not the tab's previous one) is what
         // gets restored on next startup.
         this.app.workspace.requestSaveLayout();
+    }
+
+    // Opens the hashtag's note at the vault root, creating it on first use. An
+    // existing note with that name is opened as is: it may hold the user's own
+    // content, so it is never modified.
+    async openHashtagNote(hashtag: string) {
+        // Obsidian doesn't allow these characters in a file name.
+        if (/[\\/:]/.test(hashtag)) {
+            new Notice(
+                `Cannot create a note for #${hashtag}: invalid characters in the file name.`,
+            );
+            return;
+        }
+
+        const path = normalizePath(`tag-${hashtag}.md`);
+        const existing = this.app.vault.getAbstractFileByPath(path);
+
+        try {
+            const file =
+                existing instanceof TFile
+                    ? existing
+                    : await this.app.vault.create(path, hashtagNoteContent(hashtag));
+
+            // In Live Preview the cursor would start inside the block, which then
+            // shows its source instead of the gallery.
+            await this.app.workspace.getLeaf(true).openFile(file, { state: { mode: 'preview' } });
+        } catch (error) {
+            console.error(`Error opening note for hashtag ${hashtag}:`, error);
+            new Notice(`Failed to open a note for #${hashtag}. See console for details.`);
+        }
     }
 
     async saveDb() {

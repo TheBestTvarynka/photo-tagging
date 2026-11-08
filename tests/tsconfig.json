@@ -1,0 +1,14 @@
+{
+    "compilerOptions": {
+        "module": "ESNext",
+        "moduleResolution": "bundler",
+        "target": "ES2022",
+        "lib": ["DOM", "ES2022"],
+        "strict": true,
+        "noEmit": true,
+        "skipLibCheck": true,
+        "isolatedModules": true,
+        "types": ["node", "obsidian-integration-testing/vitest/typings"]
+    },
+    "include": ["./**/*.ts"]
+}

@@ -11,7 +11,7 @@ export default tseslint.config(
             },
             parserOptions: {
                 projectService: {
-                    allowDefaultProject: ['eslint.config.js', 'manifest.json'],
+                    allowDefaultProject: ['eslint.config.js', 'manifest.json', 'vitest.config.ts'],
                 },
                 tsconfigRootDir: import.meta.dirname,
                 extraFileExtensions: ['.json'],
@@ -27,5 +27,7 @@ export default tseslint.config(
         'version-bump.mjs',
         'versions.json',
         'main.js',
+        'assets/base_vault',
+        'test_vaults',
     ]),
 );

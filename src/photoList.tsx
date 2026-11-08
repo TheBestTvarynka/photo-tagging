@@ -260,12 +260,16 @@ const PhotoList = ({ app, manifest, ctx, tags, hashTags, source }: PhotoListProp
     const options = source.split('\n');
     const groupByHashtags = options.some((line) => line.trim().toLowerCase() === 'group: hashtags');
     let isHashtagType = options.some((line) => line.trim().toLowerCase() === 'type: hashtag');
+    let explicitHashtag = options
+        .map((line) => line.trim().match(/^hashtag:\s*(.+)$/i)?.[1])
+        .find((name) => name !== undefined);
 
-    if (groupByHashtags && isHashtagType) {
+    if (groupByHashtags && (isHashtagType || explicitHashtag !== undefined)) {
         console.warn(
             'Both group by hashtags and hashtag type are specified. Disabling hashtag type.',
         );
         isHashtagType = false;
+        explicitHashtag = undefined;
     }
 
     const [allPhotos, setAllPhotos] = useState<Photo[]>([]);
@@ -303,8 +307,8 @@ const PhotoList = ({ app, manifest, ctx, tags, hashTags, source }: PhotoListProp
         void (async () => {
             let photoPromises: Promise<Photo | null>[];
 
-            if (isHashtagType) {
-                const hashtagPhotos = hashTags.get(currentFile.basename) ?? [];
+            if (isHashtagType || explicitHashtag !== undefined) {
+                const hashtagPhotos = hashTags.get(explicitHashtag ?? currentFile.basename) ?? [];
                 photoPromises = hashtagPhotos.map(({ path, imageWidth, imageHeight }) =>
                     buildPhoto(path, imageWidth, imageHeight),
                 );
@@ -330,7 +334,7 @@ const PhotoList = ({ app, manifest, ctx, tags, hashTags, source }: PhotoListProp
         return () => {
             cancelled = true;
         };
-    }, [app, manifest, ctx.sourcePath, tags, hashTags, isHashtagType]);
+    }, [app, manifest, ctx.sourcePath, tags, hashTags, isHashtagType, explicitHashtag]);
 
     // Build a set of image paths this person appears in for quick lookup.
     const allImagePaths = useMemo(() => new Set(allPhotos.map((p) => p.path)), [allPhotos]);

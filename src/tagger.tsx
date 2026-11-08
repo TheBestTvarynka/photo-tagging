@@ -71,7 +71,8 @@ export const ReactView = ({
     hashtags,
     setHashtags,
     allHashtagNames,
-}: TaggerState) => {
+    onHashtagClick,
+}: TaggerState & { onHashtagClick: (name: string) => void }) => {
     const app = useContext(AppContext);
 
     const [coords, setCoords] = useState<PhotoCoords | null>(null);
@@ -377,6 +378,7 @@ export const ReactView = ({
                             setHashtags(newHashtags, imgSize.naturalWidth, imgSize.naturalHeight)
                         }
                         allHashtagNames={allHashtagNames}
+                        onHashtagClick={onHashtagClick}
                     />
                 </div>
             </div>
@@ -499,6 +501,9 @@ export class TaggerView extends ItemView {
                         hashtags={this.taggerState.hashtags}
                         setHashtags={this.taggerState.setHashtags}
                         allHashtagNames={this.taggerState.allHashtagNames}
+                        onHashtagClick={(name) => {
+                            this.plugin.openHashtagNote(name).catch((err) => console.error(err));
+                        }}
                     />
                 </StrictMode>
             </AppContext.Provider>,
