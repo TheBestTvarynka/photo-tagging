@@ -502,7 +502,7 @@ export class TaggerView extends ItemView {
                         setHashtags={this.taggerState.setHashtags}
                         allHashtagNames={this.taggerState.allHashtagNames}
                         onHashtagClick={(name) => {
-                            this.plugin.openHashtagView(name).catch((err) => console.error(err));
+                            this.plugin.openHashtagNote(name).catch((err) => console.error(err));
                         }}
                     />
                 </StrictMode>

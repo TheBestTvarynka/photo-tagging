@@ -1,7 +1,6 @@
-import { Plugin, Menu, MenuItem, Notice, TAbstractFile, TFile } from 'obsidian';
+import { Plugin, Menu, MenuItem, Notice, TAbstractFile, TFile, normalizePath } from 'obsidian';
 
 import { ImagePath, Tag, TaggerView, VIEW_TYPE } from './tagger';
-import { HASHTAG_VIEW_TYPE, HashtagView, HashtagViewState } from './hashtagView';
 import { DEFAULT_SETTINGS, PhotoTaggingSettings, PhotoRaggingSettingTab } from './settings';
 import { mountPhotoList } from './photoList';
 import { CURRENT_DB_VERSION, migrateDb, SerializedDb } from './migrations';
@@ -11,6 +10,9 @@ import { deleteImageTiles, ensureImageTiles, moveImageTiles } from './tiling';
 type TagsDb = Map<string, Tag[]>;
 // Key is the hashtag name and value is list of image paths.
 type HashTagsDb = Map<string, ImagePath[]>;
+
+// `type: hashtag` shows the photos of the hashtag named like the note itself.
+const HASHTAG_NOTE_CONTENT = '```tagged-photos\ntype: hashtag\n```\n';
 
 export default class PhotoTagging extends Plugin {
     settings: PhotoTaggingSettings = DEFAULT_SETTINGS;
@@ -50,7 +52,6 @@ export default class PhotoTagging extends Plugin {
         }
 
         this.registerView(VIEW_TYPE, (leaf) => new TaggerView(leaf, this));
-        this.registerView(HASHTAG_VIEW_TYPE, (leaf) => new HashtagView(leaf, this));
 
         this.addSettingTab(new PhotoRaggingSettingTab(this.app, this));
 
@@ -249,14 +250,33 @@ export default class PhotoTagging extends Plugin {
         this.app.workspace.requestSaveLayout();
     }
 
-    async openHashtagView(hashtag: string) {
-        const state: HashtagViewState = { hashtag };
+    // Opens the hashtag's note at the vault root, creating it on first use. An
+    // existing note with that name is opened as is: it may hold the user's own
+    // content, so it is never modified.
+    async openHashtagNote(hashtag: string) {
+        // The block finds its photos by the note's name, so the file name has to
+        // be exactly the hashtag. These would make it a different path or name.
+        if (/^\.|[\\/:]/.test(hashtag)) {
+            new Notice(
+                `Cannot create a note for #${hashtag}: invalid characters in the file name.`,
+            );
+            return;
+        }
 
-        await this.app.workspace.getLeaf(true).setViewState({
-            type: HASHTAG_VIEW_TYPE,
-            active: true,
-            state,
-        });
+        const path = normalizePath(`${hashtag}.md`);
+        const existing = this.app.vault.getAbstractFileByPath(path);
+
+        try {
+            const file =
+                existing instanceof TFile
+                    ? existing
+                    : await this.app.vault.create(path, HASHTAG_NOTE_CONTENT);
+
+            await this.app.workspace.getLeaf(true).openFile(file);
+        } catch (error) {
+            console.error(`Error opening note for hashtag ${hashtag}:`, error);
+            new Notice(`Failed to open a note for #${hashtag}. See console for details.`);
+        }
     }
 
     async saveDb() {

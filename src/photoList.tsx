@@ -72,29 +72,6 @@ const anchorToSlideData = (anchor: HTMLAnchorElement) => {
     };
 };
 
-const buildPhoto = async (
-    app: App,
-    manifest: PluginManifest,
-    path: string,
-    imageWidth: number,
-    imageHeight: number,
-): Promise<Photo | null> => {
-    const image = app.vault.getAbstractFileByPath(path);
-    if (!(image instanceof TFile)) {
-        return null;
-    }
-
-    const tiles = await readImageTiles(app, manifest, path);
-
-    return {
-        resourcePath: app.vault.getResourcePath(image),
-        path,
-        width: imageWidth,
-        height: imageHeight,
-        tiles,
-    };
-};
-
 const NoPhotosMessage = () => <div className="photo-tagging-no-photos">No photos found.</div>;
 
 const PhotoGallery = ({
@@ -302,22 +279,41 @@ const PhotoList = ({ app, manifest, ctx, tags, hashTags, source }: PhotoListProp
             return;
         }
 
+        const buildPhoto = async (
+            path: string,
+            imageWidth: number,
+            imageHeight: number,
+        ): Promise<Photo | null> => {
+            const image = app.vault.getAbstractFileByPath(path);
+            if (!(image instanceof TFile)) {
+                return null;
+            }
+
+            const tiles = await readImageTiles(app, manifest, path);
+
+            return {
+                resourcePath: app.vault.getResourcePath(image),
+                path,
+                width: imageWidth,
+                height: imageHeight,
+                tiles,
+            };
+        };
+
         void (async () => {
             let photoPromises: Promise<Photo | null>[];
 
             if (isHashtagType) {
                 const hashtagPhotos = hashTags.get(currentFile.basename) ?? [];
                 photoPromises = hashtagPhotos.map(({ path, imageWidth, imageHeight }) =>
-                    buildPhoto(app, manifest, path, imageWidth, imageHeight),
+                    buildPhoto(path, imageWidth, imageHeight),
                 );
             } else {
                 photoPromises = [];
                 for (const [imagePath, fileTags] of tags.entries()) {
                     const tag = fileTags.find((tag) => tag.filePath === currentFile.path);
                     if (tag) {
-                        photoPromises.push(
-                            buildPhoto(app, manifest, imagePath, tag.imageWidth, tag.imageHeight),
-                        );
+                        photoPromises.push(buildPhoto(imagePath, tag.imageWidth, tag.imageHeight));
                     }
                 }
             }
@@ -399,49 +395,6 @@ const PhotoList = ({ app, manifest, ctx, tags, hashTags, source }: PhotoListProp
             ))}
         </div>
     );
-};
-
-// All photos with `hashtag`, regardless of who is tagged on them. Rendered by
-// `HashtagView`, which isn't backed by a note, so unlike `PhotoList` the
-// hashtag is passed in rather than derived from the current file.
-export const HashtagPhotoList = ({
-    app,
-    manifest,
-    hashtag,
-    hashTags,
-}: {
-    app: App;
-    manifest: PluginManifest;
-    hashtag: string;
-    hashTags: Map<string, ImagePath[]>;
-}) => {
-    const [photos, setPhotos] = useState<Photo[]>([]);
-
-    useEffect(() => {
-        let cancelled = false;
-
-        void (async () => {
-            const hashtagPhotos = await Promise.all(
-                (hashTags.get(hashtag) ?? []).map(({ path, imageWidth, imageHeight }) =>
-                    buildPhoto(app, manifest, path, imageWidth, imageHeight),
-                ),
-            );
-
-            if (!cancelled) {
-                setPhotos(hashtagPhotos.filter((photo): photo is Photo => photo !== null));
-            }
-        })();
-
-        return () => {
-            cancelled = true;
-        };
-    }, [app, manifest, hashtag, hashTags]);
-
-    if (photos.length === 0) {
-        return <NoPhotosMessage />;
-    }
-
-    return <PhotoGallery app={app} galleryId={'hashtagphotosgallery-' + hashtag} photos={photos} />;
 };
 
 export const mountPhotoList = (

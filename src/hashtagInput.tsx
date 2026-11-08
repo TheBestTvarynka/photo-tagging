@@ -101,7 +101,7 @@ export const HashtagInput = ({
                         <button
                             className="photo-tagging-hashtag-link"
                             onClick={() => onHashtagClick(ht)}
-                            title={`Show photos with hashtag ${ht}`}
+                            title={`Open note for hashtag ${ht}`}
                         >
                             #{ht}
                         </button>
