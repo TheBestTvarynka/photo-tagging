@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
-import type { TFile } from 'obsidian';
+import type { Modifier, TFile } from 'obsidian';
 import { evalInObsidian, TemporaryVault } from 'obsidian-integration-testing';
 import { vi } from 'vitest';
 
@@ -171,11 +171,15 @@ export async function typeInto(
     });
 }
 
-export async function pressKey(vault: TemporaryVault, key: string): Promise<void> {
+export async function pressKey(
+    vault: TemporaryVault,
+    key: string,
+    modifiers: Modifier[] = [],
+): Promise<void> {
     await evalInObsidian({
-        input: { key },
-        callback: async ({ key, lib: { pressKey } }) => {
-            await pressKey({ key });
+        input: { key, modifiers },
+        callback: async ({ key, modifiers, lib: { pressKey } }) => {
+            await pressKey({ key, modifiers });
         },
         vaultPath: vault.path,
     });
@@ -207,6 +211,18 @@ export async function getTexts(vault: TemporaryVault, selector: string): Promise
             Array.from(document.querySelectorAll(selector)).map(
                 (element) => element.textContent ?? '',
             ),
+        vaultPath: vault.path,
+    });
+}
+
+// Whether `selector` matches the element holding the keyboard focus.
+export async function isFocused(vault: TemporaryVault, selector: string): Promise<boolean> {
+    return evalInObsidian({
+        input: { selector },
+        callback: ({ selector }) => {
+            const element = document.querySelector(selector);
+            return element !== null && element === document.activeElement;
+        },
         vaultPath: vault.path,
     });
 }

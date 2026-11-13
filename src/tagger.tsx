@@ -1,5 +1,6 @@
 import {
     ItemView,
+    Scope,
     WorkspaceLeaf,
     ViewStateResult,
     TAbstractFile,
@@ -10,12 +11,14 @@ import {
 import type PhotoTagging from './main';
 import { HashtagInput } from './hashtagInput';
 import { comboboxProps, SuggestionList, useSuggestionList } from './suggestionList';
+import { registerFocusPersonSearchHotkey } from './taggerHotkeys';
 import {
     createContext,
     StrictMode,
     useState,
     useContext,
     MouseEvent,
+    MutableRefObject,
     useRef,
     useEffect,
 } from 'react';
@@ -72,7 +75,12 @@ export const ReactView = ({
     setHashtags,
     allHashtagNames,
     onHashtagClick,
-}: TaggerState & { onHashtagClick: (name: string) => void }) => {
+    focusPersonSearchRef,
+}: TaggerState & {
+    onHashtagClick: (name: string) => void;
+    // Filled in by the component so the view's hotkey can reach the search input.
+    focusPersonSearchRef: MutableRefObject<(() => void) | null>;
+}) => {
     const app = useContext(AppContext);
 
     const [coords, setCoords] = useState<PhotoCoords | null>(null);
@@ -132,6 +140,28 @@ export const ReactView = ({
     const [searchQuery, setSearchQuery] = useState('');
     const [searchResults, setSearchResults] = useState<TFile[]>([]);
     const [selectedFile, setSelectedFile] = useState<TFile | null>(null);
+
+    const searchInputRef = useRef<HTMLInputElement>(null);
+    // Bumped to focus the search input once it is rendered: a selected person
+    // replaces the input, so it may not exist yet when focus is requested.
+    const [searchFocusRequest, setSearchFocusRequest] = useState(0);
+
+    useEffect(() => {
+        if (searchFocusRequest > 0) {
+            searchInputRef.current?.focus();
+        }
+    }, [searchFocusRequest]);
+
+    useEffect(() => {
+        focusPersonSearchRef.current = () => {
+            setSelectedFile(null);
+            setSearchFocusRequest((request) => request + 1);
+        };
+
+        return () => {
+            focusPersonSearchRef.current = null;
+        };
+    }, [focusPersonSearchRef]);
 
     const handleSearch = (query: string) => {
         setSearchQuery(query);
@@ -310,8 +340,10 @@ export const ReactView = ({
                         </div>
                     ) : (
                         <input
+                            ref={searchInputRef}
                             type="text"
                             placeholder="Search page..."
+                            aria-keyshortcuts="Shift+S"
                             value={searchQuery}
                             {...comboboxProps(searchList)}
                             onChange={(e) => handleSearch(e.target.value)}
@@ -397,12 +429,16 @@ export class TaggerView extends ItemView {
         setHashtags: () => {},
         allHashtagNames: [],
     };
+    focusPersonSearchRef: MutableRefObject<(() => void) | null> = { current: null };
 
     constructor(leaf: WorkspaceLeaf, plugin: PhotoTagging) {
         super(leaf);
 
         this.plugin = plugin;
         this.navigation = true;
+
+        this.scope = new Scope(this.app.scope);
+        registerFocusPersonSearchHotkey(this.scope, () => this.focusPersonSearchRef.current?.());
     }
 
     getViewType() {
@@ -504,6 +540,7 @@ export class TaggerView extends ItemView {
                         onHashtagClick={(name) => {
                             this.plugin.openHashtagNote(name).catch((err) => console.error(err));
                         }}
+                        focusPersonSearchRef={this.focusPersonSearchRef}
                     />
                 </StrictMode>
             </AppContext.Provider>,
